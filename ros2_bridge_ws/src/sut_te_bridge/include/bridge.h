@@ -18,6 +18,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include <std_msgs/msg/u_int16.hpp>
 #include "rosgraph_msgs/msg/clock.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "autonoma_msgs/msg/ground_truth_array.hpp"
 #include "autonoma_msgs/msg/powertrain_data.hpp"
@@ -57,6 +58,10 @@
 #include <can_dbc_parser/DbcMessage.hpp>
 #include <can_dbc_parser/DbcSignal.hpp>
 
+#include <GeographicLib/LocalCartesian.hpp>
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/UTMUPS.hpp>
+
 namespace bridge
 {
     class SutTeBridgeNode : public rclcpp::Node
@@ -88,6 +93,9 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher;
         // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher1_;
@@ -97,6 +105,9 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher1_;
         // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher1_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher1_;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher1_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher1_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher1_;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher2_;
@@ -106,6 +117,9 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher2_;
         // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher2_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher2_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher2_;
 
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr foxgloveMapPublisher_;
         rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr foxgloveScenePublisher_;
@@ -124,6 +138,21 @@ namespace bridge
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr useCustomRaceControlSource_;
         rclcpp::Subscription<std_msgs::msg::UInt16>::SharedPtr simTimeIncrease_;
         rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr simClockTimePublisher_;
+
+
+        //Constants for orientation calculation
+        double wgs84_a = 6378137.0;
+        double wgs84_f = 1.0 / 298.257223563;
+        double prev_x_ = 0.0;
+        double prev_y_ = 0.0;
+        // This origin is for IMS
+        double lat0 = 39.7947350319205384;
+        double lon0 = -86.2352425671970906;
+        double hgt0 = 224.1435846661534015;
+        // GPS Map
+        GeographicLib::LocalCartesian gps_map_ = GeographicLib::LocalCartesian(lat0, lon0, hgt0, GeographicLib::Geocentric(wgs84_a, wgs84_f));
+        // // Lat Lon to UTM Map
+        // GeographicLib::UTMUPS llutm_map_ = GeographicLib::UTMUPS
 
         // Parameter
         bool maneuverStarted = false;
@@ -181,7 +210,6 @@ namespace bridge
         void publishGroundTruthArray();
         void publishVectorNavData();
         void publishNovatelData(uint8_t novatelID);
-        // void publishCanData(uint32_t message_id, const std::vector<uint8_t>& data);
 
         //Receiving CAN frames
         void recvBrakePressureCmd(const Frame& msg);

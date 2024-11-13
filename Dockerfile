@@ -12,6 +12,8 @@ RUN apt-get update && \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    geographiclib-tools \
+    libgeographic-dev \
     wget python3-pip debconf python3 python3-setuptools supervisor && \
     cp /etc/supervisor/supervisord.conf /etc/supervisord.conf && \
     pip3 install --no-cache-dir \
@@ -19,7 +21,13 @@ RUN apt-get update && \
     supervisord-dependent-startup==1.4.* 2>&1 && \
     mkdir -p /etc/opt/dspace/supervisord /var/log/supervisor/ && \
     chmod 755 /etc/opt/dspace/supervisord && \
-    chmod 777 /var/log/supervisor
+    chmod 777 /var/log/supervisor 
+    
+# ## install ros2 packages
+# RUN apt update && apt install -y --no-install-recommends \
+#     geographiclib-tools \
+#     libgeographic-dev \
+#     && rm -rf /var/lib/apt/lists/*
 
 RUN rosdep update && \
     echo 'source /opt/ros/humble/local_setup.bash' >> /root/.bashrc

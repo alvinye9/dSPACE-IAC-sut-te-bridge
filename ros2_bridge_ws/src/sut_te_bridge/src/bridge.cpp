@@ -5,6 +5,8 @@
 #include <can_dbc_parser/DbcMessage.hpp>
 #include <can_dbc_parser/DbcSignal.hpp>
 #include <builtin_interfaces/msg/time.hpp>
+#include <GeographicLib/UTMUPS.hpp>
+
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -208,6 +210,9 @@ namespace bridge {
       // this->novaTelRawImuPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_top/rawimu", qos);
       // this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/rawimux", qos);
       this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data_raw", qos);
+      this->novaTelImuPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data", qos);
+      this->novaTelOdomPublisher1_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_top/odom", qos);
+      this->novaTelFixPublisher1_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_top/fix", qos);
 
       this->novaTelBestPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestpos", qos);
       this->novaTelBestGNSSPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestgnsspos", qos);
@@ -218,6 +223,9 @@ namespace bridge {
       // this->novaTelRawImuPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_bottom/rawimu", qos);
       // this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/rawimux", qos);
       this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data_raw", qos);
+      this->novaTelImuPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data", qos);
+      this->novaTelOdomPublisher2_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_bottom/odom", qos);
+      this->novaTelFixPublisher2_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_bottom/fix", qos);
 
       this->foxgloveMapPublisher_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("foxglove_map", qos);
       this->foxgloveScenePublisher_ = this->create_publisher<foxglove_msgs::msg::SceneUpdate>("foxglove_scene", qos);
@@ -285,7 +293,7 @@ namespace bridge {
     // # Race Control command
     this->feedbackCmd.to_raptor.track_cond_ack = 0;
     this->feedbackCmd.to_raptor.veh_sig_ack = 0;
-    this->feedbackCmd.to_raptor.ct_state = 4;//0;
+    this->feedbackCmd.to_raptor.ct_state = 0;
     this->feedbackCmd.to_raptor.rolling_counter = 0;
     this->feedbackCmd.to_raptor.veh_num = 255;
   }
@@ -742,8 +750,9 @@ namespace bridge {
     std::cout << "DBC file LOAD FAILED" << '\n'; 
     return;
     } 
+    int ct_state_value = 9;
     dbcFrame("veh_num", this->feedbackCmd.to_raptor.veh_num )
-            ("ct_state", this->feedbackCmd.to_raptor.ct_state)
+            ("ct_state", ct_state_value) //this->feedbackCmd.to_raptor.ct_state)
             ("ct_state_rolling_counter", this->feedbackCmd.to_raptor.rolling_counter);
   }
 
@@ -906,7 +915,7 @@ namespace bridge {
     vehicleData.rr_brake_temp = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.rr_brake_temp;
 
     // Misc data
-    vehicleData.battery_voltage = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.battery_voltage;
+    vehicleData.battery_voltage = 13.0;//this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.battery_voltage;
     vehicleData.safety_switch_state = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.safety_switch_state;
     vehicleData.mode_switch_state = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.mode_switch_state;
     vehicleData.sys_state = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.sys_state;
@@ -956,10 +965,11 @@ namespace bridge {
     // else{
     //   std::cout << "DBC file loaded correctly" << '\n'; 
     // }
+    int sys_state_value = 9;
     dbcFrame("battery_voltage", vehicleData.battery_voltage) 
             ("safety_switch_state", 4.0) //vehicleData.safety_switch_state)
             ("mode_switch_state", vehicleData.mode_switch_state)
-            ("sys_state", vehicleData.sys_state)
+            ("sys_state", sys_state_value) //vehicleData.sys_state)
             ("raptor_rolling_counter", raptor_rolling_counter_);
     auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
     this->canPublisher_->publish(std::move(frame)); 
@@ -989,7 +999,17 @@ namespace bridge {
 
 //PUBLISH STEERING_REPORT_EXTD_2
 
-//PUBLISH WHEEL_SPEED_REPORT
+// PUBLISH WHEEL SPEED REPORT
+    dbcFrame = DbcFrameTx{MessageID::WHEEL_SPEED_REPORT, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("wheel_speed_RL", vehicleData.ws_rear_left) // Angles in degrees
+          ("wheel_speed_FR", vehicleData.ws_front_right)
+          ("wheel_speed_FL", vehicleData.ws_front_left)
+          ("wheel_speed_RR", vehicleData.ws_rear_right);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    this->canPublisher_->publish(std::move(frame)); 
 
 // PUBLISH BRAKE PRESSURE REPORT
     dbcFrame = DbcFrameTx{MessageID::BRAKE_PRESSURE_REPORT, this->dbwDbc_}; 
@@ -1557,6 +1577,9 @@ namespace bridge {
       this->novaTelHeading2Publisher = this->novaTelHeading2Publisher1_;
       // this->novaTelRawImuPublisher = this->novaTelRawImuPublisher1_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher1_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher1_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher1_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher1_;
       }
     else if (novatelID == 2)
     {
@@ -1569,6 +1592,9 @@ namespace bridge {
       this->novaTelHeading2Publisher = this->novaTelHeading2Publisher2_;
       // this->novaTelRawImuPublisher = this->novaTelRawImuPublisher2_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher2_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher2_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher2_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher2_;
     }
     else
     {
@@ -1687,8 +1713,8 @@ namespace bridge {
     inspva.nov_header.gps_week_milliseconds = currentNovatel.inspava_var.nov_header_var.gps_week_milliseconds;
     inspva.nov_header.idle_time = currentNovatel.inspava_var.nov_header_var.idle_time;
 
-    inspva.latitude = currentNovatel.inspava_var.latitude;
-    inspva.longitude = currentNovatel.inspava_var.longitude;
+    inspva.latitude = currentNovatel.inspava_var.longitude; //inspva lat lon are swapped
+    inspva.longitude = currentNovatel.inspava_var.latitude;
     inspva.height = currentNovatel.inspava_var.height;
     inspva.north_velocity = currentNovatel.inspava_var.north_velocity;
     inspva.east_velocity = currentNovatel.inspava_var.east_velocity;
@@ -1810,14 +1836,14 @@ namespace bridge {
 
     // this->novaTelRawImuPublisher->publish(rawImu);
 
-    // Raw IMUX
+    // Raw IMUX (imu/data_raw)
     auto rawImuX = sensor_msgs::msg::Imu();
 
     rawImuX.orientation.x = 0;
     rawImuX.orientation.y = 0;
     rawImuX.orientation.z = 0;
     rawImuX.orientation.w = 0;
-    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = -1;}
+    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = 0;}
     
     rawImuX.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
     rawImuX.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
@@ -1830,8 +1856,14 @@ namespace bridge {
     for (size_t i = 0; i < 9; i++) {rawImuX.linear_acceleration_covariance[i] = 0;}
 
     // Header
-    rawImuX.header.frame_id = "ego";
-
+    if (novatelID == 1)
+    {
+      rawImuX.header.frame_id = "gps_top_imu";
+    }
+    else
+    {
+      rawImuX.header.frame_id = "gps_bottom_imu";
+    }
     if(this->simModeEnabled)
     {
       rawImuX.header.stamp.sec = this->sec;
@@ -1844,6 +1876,164 @@ namespace bridge {
     }
 
     this->novaTelRawImuXPublisher->publish(rawImuX);
+
+   // Imu (imu/data)
+    auto imuMsg = sensor_msgs::msg::Imu();
+
+    double lat = currentNovatel.best_pos_var.lat;
+    double lon =currentNovatel.best_pos_var.lon;
+    double height = currentNovatel.best_pos_var.hgt;
+    double x, y, z;
+    gps_map_.Forward(lat, lon, height, x, y, z);
+    // Calculate yaw from Position Difference
+    double dx = x - prev_x_;
+    double dy = y - prev_y_;
+    double yaw = std::atan2(dy, dx);
+    prev_x_ = x;
+    prev_y_ = y;
+    x = x - 3.175 * std::cos(yaw);
+    y = y - 3.175 * std::sin(yaw);
+    z = z;
+    // yaw = yaw + 3.1415926535;
+    double cy = -1 * std::cos(yaw * 0.5);
+    double sy = -1 * std::sin(yaw * 0.5);
+    ///////////
+    // tf2::Quaternion q;
+    // q.setRPY(0, 0, -1 * yaw); //yaw
+
+    imuMsg.orientation.x = 0.0; 
+    imuMsg.orientation.y = 0.0;
+    imuMsg.orientation.z = sy;
+    imuMsg.orientation.w = cy;
+    // imuMsg.orientation.x = q.x();
+    // imuMsg.orientation.y = q.y();
+    // imuMsg.orientation.z = q.z();
+    // imuMsg.orientation.w = q.w();
+    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = 0;}
+    
+    imuMsg.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    imuMsg.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    imuMsg.angular_velocity.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.angular_velocity_covariance[i] = 0;}
+
+    imuMsg.linear_acceleration.x = currentNovatel.raw_imu_var.linear_acceleration_var.x;
+    imuMsg.linear_acceleration.y = currentNovatel.raw_imu_var.linear_acceleration_var.y;
+    imuMsg.linear_acceleration.z = currentNovatel.raw_imu_var.linear_acceleration_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.linear_acceleration_covariance[i] = 0;}
+
+    // Header
+    if (novatelID == 1)
+    {
+      imuMsg.header.frame_id = "gps_top";
+    }
+    else
+    {
+      imuMsg.header.frame_id = "gps_bottom";
+    }
+    if(this->simModeEnabled)
+    {
+      imuMsg.header.stamp.sec = this->sec;
+      imuMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      imuMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      imuMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelImuPublisher->publish(imuMsg);
+
+    //Nav Sat Fix 
+    auto fixMsg = sensor_msgs::msg::NavSatFix();
+
+    fixMsg.status.status = 2;
+    fixMsg.status.service = 3;
+    fixMsg.latitude = currentNovatel.best_pos_var.lat; //seems lat and lon are switched for inspva, so use novatel instead
+    fixMsg.longitude = currentNovatel.best_pos_var.lon;
+    fixMsg.altitude = currentNovatel.inspava_var.height;
+    fixMsg.position_covariance_type = 2;
+    // Header
+    if (novatelID == 1)
+    {
+      fixMsg.header.frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      fixMsg.header.frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      fixMsg.header.stamp.sec = this->sec;
+      fixMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      fixMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      fixMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelFixPublisher->publish(fixMsg);
+
+   // Odom
+    auto odomMsg = nav_msgs::msg::Odometry();
+
+    double easting, northing;
+    int zone;
+    bool north;
+    GeographicLib::UTMUPS::Forward(lat, lon, zone, north, easting, northing);
+    // Now `x` and `y` contain the UTM coordinates, and `zone` and `north` indicate the UTM zone
+
+    odomMsg.pose.pose.position.x = easting;
+    odomMsg.pose.pose.position.y = northing;
+    odomMsg.pose.pose.position.z = z;
+    odomMsg.pose.pose.orientation.x = 0.0; 
+    odomMsg.pose.pose.orientation.y = 0.0;
+    odomMsg.pose.pose.orientation.z = sy;
+    odomMsg.pose.pose.orientation.w = cy;
+    // odomMsg.pose.pose.orientation.x = q.x();
+    // odomMsg.pose.pose.orientation.y = q.y();
+    // odomMsg.pose.pose.orientation.z = q.z();
+    // odomMsg.pose.pose.orientation.w = q.w();
+    for (size_t i = 0; i < 9; i++) {odomMsg.pose.covariance[i] = 0;}
+    
+    double fl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_left;
+    double fr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_right;
+    double rl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_left;
+    double rr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_right;
+    double vx = (fl + fr + rl + rr) / 4.0 / 3.6;
+
+    odomMsg.twist.twist.linear.x = vx;
+
+
+    odomMsg.twist.twist.angular.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    odomMsg.twist.twist.angular.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    odomMsg.twist.twist.angular.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {odomMsg.twist.covariance[i] = 0;}
+
+    // Header
+    if (novatelID == 1)
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      odomMsg.header.stamp.sec = this->sec;
+      odomMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      odomMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      odomMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelOdomPublisher->publish(odomMsg);
+
   }
 }
 

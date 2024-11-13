@@ -4,12 +4,13 @@ project(novatel_oem7_msgs)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(MSG_DEPS std_msgs)
+set(MSG_DEPS std_msgs geometry_msgs)
 
 
 find_package(ament_cmake 		REQUIRED)
 find_package(rosidl_default_generators 	REQUIRED)
 find_package(std_msgs 			REQUIRED)
+find_package(geometry_msgs  REQUIRED)
 
 
 set(MSG_FILES
@@ -19,8 +20,6 @@ set(MSG_FILES
   msg/BESTPOS.msg
   msg/BESTUTM.msg
   msg/BESTVEL.msg
-  msg/BESTGNSSPOS.msg
-  msg/PPPPOS.msg
   msg/HEADING2.msg
   msg/INSCONFIG.msg
   msg/INSPVA.msg
@@ -29,8 +28,6 @@ set(MSG_FILES
   msg/CORRIMU.msg
   msg/IMURATECORRIMU.msg
   msg/RXSTATUS.msg
-  msg/TERRASTARSTATUS.msg
-  msg/TERRASTARINFO.msg
   msg/TIME.msg
   msg/INSExtendedSolutionStatus.msg
   msg/INSFrame.msg
@@ -43,22 +40,13 @@ set(MSG_FILES
   msg/INSAlignmentMode.msg
   msg/INSOutputFrame.msg
   msg/PositionOrVelocityType.msg
+  msg/RAWIMU.msg
   msg/Rotation.msg
   msg/RotationalOffset.msg
   msg/SolutionStatus.msg
   msg/SolutionSource.msg
   msg/Translation.msg
   msg/TranslationOffset.msg
-  msg/SubscriptionPermission.msg
-  msg/SubscriptionType.msg
-  msg/SyncState.msg
-  msg/RegionRestriction.msg
-  msg/LocalAreaStatus.msg
-  msg/AccessStatus.msg
-  msg/GeogatingStatus.msg
-  msg/ObservationStatus.msg
-  msg/TrackStatChannel.msg
-  msg/TRACKSTAT.msg
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

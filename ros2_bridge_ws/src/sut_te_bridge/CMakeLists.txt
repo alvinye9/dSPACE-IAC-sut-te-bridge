@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.8)
 project(sut_te_bridge)
 
 set (VESIAPI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/V-ESI-API)
@@ -16,6 +16,7 @@ include_directories(/opt/ros/humble/include/tf2_ros)
 # find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(autonoma_msgs REQUIRED)
@@ -28,7 +29,12 @@ find_package(rosgraph_msgs REQUIRED)
 find_package(can_msgs REQUIRED)
 find_package(can_dbc_parser REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+find_package(GEOGRAPHICLIB REQUIRED)
+# find_package(ALGLIB REQUIRED)
+
 set(MSG_DEPS std_msgs)
+set(MSG_DEPS nav_msgs)
 set(MSG_DEPS sensor_msgs)
 set(MSG_DEPS geometry_msgs)
 set(MSG_DEPS autonoma_msgs)
@@ -45,6 +51,7 @@ include_directories(
 set(dependencies
   rclcpp
   std_msgs
+  nav_msgs
   sensor_msgs
   geometry_msgs
   rosidl_default_generators
@@ -71,13 +78,15 @@ ament_target_dependencies(${exe_name} ${dependencies})
 target_link_libraries(
   ${exe_name}
   ${VESIAPI_DIR}/lib/linux/libVESIAPI.so
-  # can_dbc_parser::can_dbc_parser  # Add this line
+  ${GeographicLib_LIBRARIES}
+  ${ALGLIB_LIBRARIES}
 )
 
 target_include_directories(${exe_name}
   PUBLIC include/sut-te-bridge
   PUBLIC include/V-ESI-API/include
-  # PUBLIC ${CMAKE_INSTALL_PREFIX}/can_dbc_parser/include  # Add this line
+  ${GeographicLib_INCLUDE_DIRS}
+  ${ALGLIB_LIBRARIES}
 )
 
 install(TARGETS ${exe_name}
