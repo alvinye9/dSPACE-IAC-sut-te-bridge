@@ -1,0 +1,15 @@
+# Build and Install Folders
+**/build/
+**/install/
+**/build_isolated/
+**/install_isolated/
+**/log/
+**/lib/
+**/bin/
+**/docs/
+**/devel/
+*cmake-build*
+
+#Misc
+**/raptor_dbw_can/
+.vscode/
