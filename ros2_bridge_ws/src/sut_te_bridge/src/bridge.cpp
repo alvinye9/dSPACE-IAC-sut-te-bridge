@@ -1883,20 +1883,26 @@ namespace bridge {
     double lat = currentNovatel.best_pos_var.lat;
     double lon =currentNovatel.best_pos_var.lon;
     double height = currentNovatel.best_pos_var.hgt;
-    double x, y, z;
-    gps_map_.Forward(lat, lon, height, x, y, z);
-    // Calculate yaw from Position Difference
-    double dx = x - prev_x_;
-    double dy = y - prev_y_;
-    double yaw = std::atan2(dy, dx);
-    prev_x_ = x;
-    prev_y_ = y;
-    x = x - 3.175 * std::cos(yaw);
-    y = y - 3.175 * std::sin(yaw);
-    z = z;
-    // yaw = yaw + 3.1415926535;
-    double cy = -1 * std::cos(yaw * 0.5);
-    double sy = -1 * std::sin(yaw * 0.5);
+    // double x, y, z;
+    // gps_map_.Forward(lat, lon, height, x, y, z);
+    // // Calculate yaw from Position Difference
+    // double dx = x - prev_x_;
+    // double dy = y - prev_y_;
+    // double yaw = std::atan2(dy, dx);
+    // std::cout << "Current x: " << static_cast<double>(x) << std::endl;  //this kinda calculation doesnt work when the car is not moving... need to use more consistent heading source
+    // std::cout << "Previous x: " << static_cast<double>(prev_x_) << std::endl; 
+    // std::cout << "IMU yaw: " << static_cast<double>(yaw) << std::endl; //sometimes jumps to 0
+    double yaw = currentNovatel.heading_2_var.heading + 90.0;
+    yaw = yaw * (3.1415926535 / 180.0);
+
+    // prev_x_ = x;
+    // prev_y_ = y;
+    // x = x - 3.175 * std::cos(yaw);
+    // y = y - 3.175 * std::sin(yaw);
+    // z = z;
+
+    double cy = std::cos(yaw * 0.5);
+    double sy = std::sin(yaw * 0.5);
     ///////////
     // tf2::Quaternion q;
     // q.setRPY(0, 0, -1 * yaw); //yaw
@@ -1905,6 +1911,7 @@ namespace bridge {
     imuMsg.orientation.y = 0.0;
     imuMsg.orientation.z = sy;
     imuMsg.orientation.w = cy;
+    // std::cout << "IMU sy term: " << static_cast<double>(sy) << std::endl; //stuck at 0?
     // imuMsg.orientation.x = q.x();
     // imuMsg.orientation.y = q.y();
     // imuMsg.orientation.z = q.z();
@@ -1985,7 +1992,7 @@ namespace bridge {
 
     odomMsg.pose.pose.position.x = easting;
     odomMsg.pose.pose.position.y = northing;
-    odomMsg.pose.pose.position.z = z;
+    odomMsg.pose.pose.position.z = height;
     odomMsg.pose.pose.orientation.x = 0.0; 
     odomMsg.pose.pose.orientation.y = 0.0;
     odomMsg.pose.pose.orientation.z = sy;
