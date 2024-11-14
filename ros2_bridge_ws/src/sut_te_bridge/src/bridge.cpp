@@ -720,6 +720,8 @@ namespace bridge {
     } 
     dbcFrame("acc_pedal_cmd", this->feedbackCmd.vehicle_inputs.throttle_cmd)
             ("acc_pedal_cmd_counter", this->feedbackCmd.vehicle_inputs.throttle_cmd_count);
+
+    // std::cout << "Incoming throttle cmd: " << static_cast<double>(this->feedbackCmd.vehicle_inputs.throttle_cmd) << std::endl; // seems to work
   }
 
   void SutTeBridgeNode::recvSteeringCmd(const Frame& msg) {
@@ -750,9 +752,8 @@ namespace bridge {
     std::cout << "DBC file LOAD FAILED" << '\n'; 
     return;
     } 
-    int ct_state_value = 9;
     dbcFrame("veh_num", this->feedbackCmd.to_raptor.veh_num )
-            ("ct_state", ct_state_value) //this->feedbackCmd.to_raptor.ct_state)
+            ("ct_state", this->feedbackCmd.to_raptor.ct_state) //should be ct = 9 for NOM_RACE
             ("ct_state_rolling_counter", this->feedbackCmd.to_raptor.rolling_counter);
   }
 
@@ -837,6 +838,16 @@ namespace bridge {
             ("lap_time", raceControlData.lap_time )
             ("time_stamp", raceControlData.time_stamp);
     auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 //PUBLISH BASE_TO_CAR_SUMMARY
@@ -852,20 +863,20 @@ namespace bridge {
             ("track_flag", raceControlData.track_flag)
             ("veh_flag", raceControlData.veh_flag);
       frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+      if(this->simModeEnabled)
+      {
+        frame->header.stamp.sec = this->sec;
+        frame->header.stamp.nanosec = this->nsec;
+      }
+      else //this is triggered by default
+      {
+        frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+        frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      }
+
       this->canPublisher_->publish(std::move(frame)); 
 
-//PUBLISH MARELLI_REPORT_1 (careful to not overwrite base_to_car_summary)
-    // dbcFrame = DbcFrameTx{MessageID::MARELLI_REPORT_1, this->dbwDbc_}; 
-    // if (this->dbwDbc_.GetMessageCount() == 0) {
-    //     std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
-    // }
-    // dbcFrame("marelli_track_flag", race_control_cmd_.track_flag)
-    //         ("marelli_vehicle_flag", race_control_cmd_.vehicle_flag);
-    //         // ("marelli_sector_flag", race_control_cmd_.sector_flag)
-    //         // ("marelli_rc_lte_rssi", race_control_cmd_.lte_rssi)
-    //         // ("marelli_rc_base_sync_check", race_control_cmd_.lte_sync_ok);
-    //   frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
-    //   this->canPublisher_->publish(std::move(frame)); 
+//PUBLISH MARELLI_REPORT_1 
 
   }// end publish race control
 
@@ -965,13 +976,23 @@ namespace bridge {
     // else{
     //   std::cout << "DBC file loaded correctly" << '\n'; 
     // }
-    int sys_state_value = 9;
+    int sys_state_value = 9; //driving
     dbcFrame("battery_voltage", vehicleData.battery_voltage) 
             ("safety_switch_state", 4.0) //vehicleData.safety_switch_state)
-            ("mode_switch_state", vehicleData.mode_switch_state)
+            ("mode_switch_state", false) //false: race mode, true: test mode //vehicleData.mode_switch_state)
             ("sys_state", sys_state_value) //vehicleData.sys_state)
             ("raptor_rolling_counter", raptor_rolling_counter_);
     auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 //PUBLISH ACCELERATOR_REPORT
@@ -982,6 +1003,16 @@ namespace bridge {
     dbcFrame("acc_pedal_fdbk", vehicleData.accel_pedal_output)
             ("acc_pedal_fdbk_counter", raptor_rolling_counter_);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); //overwrite can frame msg
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 //PUBLISH STEERING_REPORT
@@ -995,6 +1026,16 @@ namespace bridge {
           ("secondary_steering_ang_fdbk", vehicleData.steering_wheel_angle)
           ("primary_steering_angle_fbk", vehicleData.steering_wheel_angle);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 //PUBLISH STEERING_REPORT_EXTD_2
@@ -1009,6 +1050,16 @@ namespace bridge {
           ("wheel_speed_FL", vehicleData.ws_front_left)
           ("wheel_speed_RR", vehicleData.ws_rear_right);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 // PUBLISH BRAKE PRESSURE REPORT
@@ -1020,6 +1071,16 @@ namespace bridge {
             ("brake_pressure_fdbk_rear", vehicleData.rear_brake_pressure)
             ("brk_pressure_fdbk_counter", raptor_rolling_counter_);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
     this->canPublisher_->publish(std::move(frame)); 
 
 //PUBLISH BRAKE_REPORT_EXTD (NA)
@@ -1883,39 +1944,18 @@ namespace bridge {
     double lat = currentNovatel.best_pos_var.lat;
     double lon =currentNovatel.best_pos_var.lon;
     double height = currentNovatel.best_pos_var.hgt;
-    // double x, y, z;
-    // gps_map_.Forward(lat, lon, height, x, y, z);
-    // // Calculate yaw from Position Difference
-    // double dx = x - prev_x_;
-    // double dy = y - prev_y_;
-    // double yaw = std::atan2(dy, dx);
-    // std::cout << "Current x: " << static_cast<double>(x) << std::endl;  //this kinda calculation doesnt work when the car is not moving... need to use more consistent heading source
-    // std::cout << "Previous x: " << static_cast<double>(prev_x_) << std::endl; 
-    // std::cout << "IMU yaw: " << static_cast<double>(yaw) << std::endl; //sometimes jumps to 0
+
     double yaw = currentNovatel.heading_2_var.heading + 90.0;
     yaw = yaw * (3.1415926535 / 180.0);
 
-    // prev_x_ = x;
-    // prev_y_ = y;
-    // x = x - 3.175 * std::cos(yaw);
-    // y = y - 3.175 * std::sin(yaw);
-    // z = z;
-
     double cy = std::cos(yaw * 0.5);
     double sy = std::sin(yaw * 0.5);
-    ///////////
-    // tf2::Quaternion q;
-    // q.setRPY(0, 0, -1 * yaw); //yaw
 
     imuMsg.orientation.x = 0.0; 
     imuMsg.orientation.y = 0.0;
     imuMsg.orientation.z = sy;
     imuMsg.orientation.w = cy;
-    // std::cout << "IMU sy term: " << static_cast<double>(sy) << std::endl; //stuck at 0?
-    // imuMsg.orientation.x = q.x();
-    // imuMsg.orientation.y = q.y();
-    // imuMsg.orientation.z = q.z();
-    // imuMsg.orientation.w = q.w();
+
     for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = 0;}
     
     imuMsg.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
@@ -1997,10 +2037,7 @@ namespace bridge {
     odomMsg.pose.pose.orientation.y = 0.0;
     odomMsg.pose.pose.orientation.z = sy;
     odomMsg.pose.pose.orientation.w = cy;
-    // odomMsg.pose.pose.orientation.x = q.x();
-    // odomMsg.pose.pose.orientation.y = q.y();
-    // odomMsg.pose.pose.orientation.z = q.z();
-    // odomMsg.pose.pose.orientation.w = q.w();
+
     for (size_t i = 0; i < 9; i++) {odomMsg.pose.covariance[i] = 0;}
     
     double fl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_left;
