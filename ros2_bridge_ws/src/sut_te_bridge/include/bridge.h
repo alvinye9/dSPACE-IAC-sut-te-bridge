@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
-#include <string>
+#include <vector>
+#include <fstream>
 #include <algorithm>
 #include <tf2/LinearMath/Quaternion.h>
 
@@ -82,8 +83,11 @@ namespace bridge
         rclcpp::Publisher<vectornav_msgs::msg::AttitudeGroup>::SharedPtr verctorNavAttitudeGroupPublisher_;
         rclcpp::Publisher<vectornav_msgs::msg::ImuGroup>::SharedPtr verctorNavImuGroupPublisher_;
         rclcpp::Publisher<vectornav_msgs::msg::InsGroup>::SharedPtr verctorNavInsGroupPublisher_;
-        rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr verctorNavGpsGroupPublisher_;
+        rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr verctorNavGpsGroupLeftPublisher_;
+        rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr verctorNavGpsGroupRightPublisher_;
         rclcpp::Publisher<vectornav_msgs::msg::TimeGroup>::SharedPtr verctorNavTimeGroupPublisher_;
+
+        rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr verctorNavGpsGroupPublisher;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher;
@@ -125,8 +129,9 @@ namespace bridge
         rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr foxgloveScenePublisher_;
         rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr egoPositionPublisher_;
 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr resetCommandPublisher_;
+
         rclcpp::Publisher<Frame>::SharedPtr canPublisher_;
-        // rclcpp::Publisher<Frame>::SharedPtr pub_can_;
         rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr canSubscriber_;
 
         // Timer
@@ -164,7 +169,18 @@ namespace bridge
         bool simModeEnabled = false;
         bool numberWarningSent = false;
         uint8_t prestart_rolling_counter;
-        
+
+
+        // Execution duration logging
+        std::vector <double> measured_vesi_times;
+        int64_t timeStartNanosec = 0;
+        int64_t timeEndNanosec = 0;
+        int64_t timeStartVESICallBackNanosec = 0;
+        int64_t timeEndVESICallBackNanosec = 0;
+        std::ofstream myfile;
+        std::string pathTimeRecord;
+        bool enableTimeRecord;
+
         // Simulated clock
         uint32_t nsec = 0;
         uint32_t sec = 0;
