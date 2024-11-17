@@ -1,12 +1,89 @@
 #include "bridge.h"
 
+#include "sut-te-bridge/canid_enum.hpp"
+#include <can_dbc_parser/Dbc.hpp>
+#include <can_dbc_parser/DbcBuilder.hpp>
+#include <can_dbc_parser/DbcMessage.hpp>
+#include <can_dbc_parser/DbcSignal.hpp>
+#include <builtin_interfaces/msg/time.hpp>
+#include <GeographicLib/UTMUPS.hpp>
+
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
+using builtin_interfaces::msg::Time;
+using sensor_msgs::msg::Imu;
+
 namespace bridge {
+
+  struct DbcFrameRx {
+    NewEagle::DbcMessage* message = NULL;
+
+    DbcFrameRx(const Frame& msg, const MessageID& msgType, NewEagle::Dbc& dbc,
+              Time& frame_timestamp) {
+      message = dbc.GetMessageById(static_cast<uint32_t>(msgType));
+      if (msg.dlc < message->GetDlc()) return;
+      frame_timestamp = msg.header.stamp;
+      message->SetFrame(msg);
+    }
+
+    bool valid() const { return message != NULL; }
+
+    template <typename T>
+    DbcFrameRx& operator()(const std::string& dbcField, T& msgField) {
+      msgField = static_cast<T>(message->GetSignal(dbcField)->GetResult());
+      return *this;
+    }
+  };
+
+  struct DbcFrameTx {
+    NewEagle::DbcMessage* message = NULL;
+
+    DbcFrameTx(const MessageID& msgType, NewEagle::Dbc& dbc) {
+      message = dbc.GetMessageById(static_cast<uint32_t>(msgType));
+        if (!message) {
+            std::cerr << "Error: Could not find message ID " << static_cast<uint32_t>(msgType)
+                      << " in DBC file." << std::endl;
+        }
+    }
+
+    bool valid() const { return message != NULL; }
+
+    template <typename T>
+    DbcFrameTx& operator()(const std::string& dbcField, const T& msgField) {
+      message->GetSignal(dbcField)->SetResult(static_cast<double>(msgField));
+      return *this;
+    }
+  };
+
+  uint8_t accel_rolling_counter_ = 0;  
+  void incrementAccelRollingCounter() {
+      // Increment and wrap around at 15 (for a 4-bit counter)
+      accel_rolling_counter_ = (accel_rolling_counter_ + 1) % 16;
+  }
 
   SutTeBridgeNode::SutTeBridgeNode() : Node("sut_te_bridge_node")
   {
+    dbw_dbc_file_ = this->declare_parameter<std::string>("dbw_dbc_file", "/root/ros2_bridge_ws/src/sut_te_bridge/config/CAN1-INDY-V17.dbc");
+
+    try {
+        // Load the DBC file using DbcBuilder
+        dbwDbc_ = NewEagle::DbcBuilder().NewDbc(dbw_dbc_file_);
+
+        // Verify DBC loading
+        if (dbwDbc_.GetMessageCount() == 0) {
+            RCLCPP_ERROR(this->get_logger(), 
+                         "DBC file loaded, but no messages found: %s", dbw_dbc_file_.c_str());
+        } else {
+            RCLCPP_INFO(this->get_logger(), 
+                        "Successfully loaded DBC file: %s", dbw_dbc_file_.c_str());
+        }
+    } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to load DBC file: %s. Error: %s", 
+                     dbw_dbc_file_.c_str(), e.what());
+        throw e;
+    }
+
     std::cout << "Set SimManager Host IP to: "<< std::getenv("VESI_IP") << std::endl;
     if (std::getenv("VESI_IP")){
       this->api.setSimManagerHost(std::getenv("VESI_IP"));
@@ -144,7 +221,11 @@ namespace bridge {
       this->novaTelInspvaPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_top/inspva", qos);
       this->novaTelHeading2Publisher1_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_top/heading2", qos);
       this->novaTelRawImuPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_top/rawimu", qos);
-      this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/rawimux", qos);
+      // this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/rawimux", qos);
+      this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data_raw", qos);
+      this->novaTelImuPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data", qos);
+      this->novaTelOdomPublisher1_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_top/odom", qos);
+      this->novaTelFixPublisher1_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_top/fix", qos);
 
       this->novaTelBestPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestpos", qos);
       this->novaTelBestGNSSPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestgnsspos", qos);
@@ -153,7 +234,17 @@ namespace bridge {
       this->novaTelInspvaPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_bottom/inspva", qos);
       this->novaTelHeading2Publisher2_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_bottom/heading2", qos);
       this->novaTelRawImuPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_bottom/rawimu", qos);
-      this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/rawimux", qos);
+      // this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/rawimux", qos);
+      this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data_raw", qos);
+      this->novaTelImuPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data", qos);
+      this->novaTelOdomPublisher2_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_bottom/odom", qos);
+      this->novaTelFixPublisher2_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_bottom/fix", qos);
+
+      this->canPublisher_ = this->create_publisher<Frame>("from_can_bus", 20); 
+      if (this->canPublisher_ == nullptr) {
+        std::cerr << "Failed to create CAN publisher!" << std::endl;
+      }
+      this->canSubscriber_ = this->create_subscription<can_msgs::msg::Frame>("to_can_bus", qos, std::bind(&SutTeBridgeNode::canSubscriberCallback, this, _1)); 
 
       this->foxgloveMapPublisher_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("foxglove_map", qos);
       this->foxgloveScenePublisher_ = this->create_publisher<foxglove_msgs::msg::SceneUpdate>("foxglove_scene", qos);
@@ -590,7 +681,7 @@ namespace bridge {
 
     // Throttle command (%)
     this->feedbackCmd.vehicle_inputs.throttle_cmd = msg.throttle_cmd;
-
+    // std::cout << "throttle cmd: " << static_cast<double>(this->feedbackCmd.vehicle_inputs.throttle_cmd) << std::endl;
     this->feedbackCmd.vehicle_inputs.throttle_cmd_count = msg.throttle_cmd_count;
     this->feedbackCmd.vehicle_inputs.enable_throttle_cmd = 1;
 
@@ -624,6 +715,12 @@ namespace bridge {
     this->feedbackCmd.to_raptor.veh_sig_ack = msg.veh_sig_ack;
     this->feedbackCmd.to_raptor.ct_state = msg.ct_state;
     this->feedbackCmd.to_raptor.rolling_counter = msg.rolling_counter;
+
+    // std::cout << "To Raptor Track Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.track_cond_ack) << std::endl; 
+    // std::cout << "To Raptor Vehicle Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.veh_sig_ack) << std::endl;
+    // std::cout << "To Raptor CT State: " << static_cast<int>(this->feedbackCmd.to_raptor.ct_state) << std::endl; 
+    // std::cout << "Veh Num: " << static_cast<int>(msg.veh_num) << std::endl;  
+
     if (msg.veh_num != 0)
     {
       this->feedbackCmd.to_raptor.veh_num = msg.veh_num;
@@ -700,7 +797,10 @@ namespace bridge {
       raceControlData.time_stamp = this->canBus->asm_bus_var.race_control_var.time_stamp;
     }
     
-    
+    // std::cout << "Race Control Track Flag: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.track_flag) << std::endl; 
+    // std::cout << "Race Control Vehicle Flag: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.veh_flag) << std::endl; 
+    // std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
+    // std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
 
     // Header
     raceControlData.header.frame_id = "";
@@ -718,8 +818,60 @@ namespace bridge {
 
     if (this->useCustomRaceControl == false)
     {
-      this->raceControlDataPublisher_->publish(raceControlData);
+      this->raceControlDataPublisher_->publish(raceControlData);  
     }
+  
+    //PUBLISH BASE_TO_CAR_TIMING
+    DbcFrameTx dbcFrame = DbcFrameTx{MessageID::BASE_TO_CAR_TIMING, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("laps", raceControlData.laps )
+            ("lap_time", raceControlData.lap_time )
+            ("time_stamp", raceControlData.time_stamp);
+    auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
+
+    //PUBLISH BASE_TO_CAR_SUMMARY
+    dbcFrame = DbcFrameTx{MessageID::BASE_TO_CAR_SUMMARY, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("base_to_car_heartbeat", this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat)
+            ("veh_rank", this->canBus->asm_bus_var.race_control_var.veh_rank)
+            ("lap_count", this->canBus->asm_bus_var.race_control_var.lap_count)
+            ("lap_distance", this->canBus->asm_bus_var.race_control_var.lap_distance)
+            ("round_target_speed", this->canBus->asm_bus_var.race_control_var.round_target_speed)
+            ("track_flag", this->canBus->asm_bus_var.race_control_var.track_flag)
+            ("veh_flag", this->canBus->asm_bus_var.race_control_var.veh_flag);
+      frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+      if(this->simModeEnabled)
+      {
+        frame->header.stamp.sec = this->sec;
+        frame->header.stamp.nanosec = this->nsec;
+      }
+      else //this is triggered by default
+      {
+        frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+        frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      }
+
+      this->canPublisher_->publish(std::move(frame)); 
+      
+    // std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
+    // std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
+
+
   }
 
   void SutTeBridgeNode::publishVehicleData()
@@ -802,7 +954,118 @@ namespace bridge {
       vehicleData.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (vehicleData.header.stamp.sec*1000000000);
     }
 
-    this->vehicleDataPublisher_->publish(vehicleData);
+    this->vehicleDataPublisher_->publish(vehicleData); 
+
+    // PUBLISH MISC_REPORT
+    DbcFrameTx dbcFrame{MessageID::MISC_REPORT, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    double battery_voltage_value = 14.0; 
+    dbcFrame("battery_voltage", battery_voltage_value) //vehicleData.battery_voltage) 
+            ("safety_switch_state", 4.0) //vehicleData.safety_switch_state)
+            ("mode_switch_state", false) //false: race mode, true: test mode //vehicleData.mode_switch_state)
+            ("sys_state", this->canBus->asm_bus_var.race_control_var.sys_state);
+            // ("raptor_rolling_counter", rolling_counter_); //seems unused
+    auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
+
+    //PUBLISH ACCELERATOR_REPORT
+    dbcFrame = DbcFrameTx{MessageID::ACCELERATOR_REPORT, this->dbwDbc_}; //overwrite dbcFrame
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("acc_pedal_fdbk", vehicleData.accel_pedal_output)
+            ("acc_pedal_fdbk_counter", accel_rolling_counter_);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); //overwrite can frame msg
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
+
+    // std::cout << "Accel Rolling Counter: " << static_cast<int>(accel_rolling_counter_) << std::endl; 
+    incrementAccelRollingCounter();
+
+    //PUBLISH STEERING_REPORT_EXTD
+    dbcFrame = DbcFrameTx{MessageID::STEERING_REPORT_EXTD, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("average_steering_ang_fdbk", vehicleData.steering_wheel_angle) // Angles in degrees
+          ("secondary_steering_ang_fdbk", vehicleData.steering_wheel_angle)
+          ("primary_steering_angle_fbk", vehicleData.steering_wheel_angle);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
+
+    // PUBLISH WHEEL SPEED REPORT
+    dbcFrame = DbcFrameTx{MessageID::WHEEL_SPEED_REPORT, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("wheel_speed_RL", vehicleData.ws_rear_left) // Angles in degrees
+          ("wheel_speed_FR", vehicleData.ws_front_right)
+          ("wheel_speed_FL", vehicleData.ws_front_left)
+          ("wheel_speed_RR", vehicleData.ws_rear_right);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); 
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else 
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
+
+    // PUBLISH BRAKE PRESSURE REPORT
+    dbcFrame = DbcFrameTx{MessageID::BRAKE_PRESSURE_REPORT, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("brake_pressure_fdbk_front", vehicleData.front_brake_pressure)
+            ("brake_pressure_fdbk_rear", vehicleData.rear_brake_pressure)
+            ("brk_pressure_fdbk_counter", accel_rolling_counter_);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    if(this->simModeEnabled)
+    {
+      frame->header.stamp.sec = this->sec;
+      frame->header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      frame->header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+    this->canPublisher_->publish(std::move(frame)); 
   }
 
   void SutTeBridgeNode::publishPowertrainData()
@@ -856,6 +1119,47 @@ namespace bridge {
     }
 
     this->powertrainDataPublisher_->publish(powertrainData);
+
+    //PUBLISH PT_REPORT_1
+    DbcFrameTx dbcFrame = DbcFrameTx{MessageID::PT_REPORT_1, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("throttle_position", powertrainData.throttle_position)
+            ("engine_run_switch", powertrainData.engine_run_switch_status)
+            ("current_gear", powertrainData.current_gear)
+            ("engine_speed_rpm", powertrainData.engine_rpm)
+            ("vehicle_speed_kmph", powertrainData.vehicle_speed_kmph)
+            ("engine_state", powertrainData.engine_on_status)
+            ("gear_shift_status", powertrainData.gear_shift_status);
+      auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+      this->canPublisher_->publish(std::move(frame)); 
+
+    //PUBLISH PT_REPORT_2
+    dbcFrame = DbcFrameTx{MessageID::PT_REPORT_2, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("fuel_pressure_kPa", powertrainData.fuel_pressure)
+            ("engine_oil_pressure_kPa", powertrainData.engine_oil_pressure)
+            ("coolant_temperature", powertrainData.engine_coolant_temperature)
+            ("transmission_temperature", powertrainData.transmission_oil_temperature)
+            ("transmission_pressure_kPa", powertrainData.transmission_oil_pressure);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    this->canPublisher_->publish(std::move(frame)); 
+
+    //PUBLISH PT_REPORT_3
+    dbcFrame = DbcFrameTx{MessageID::PT_REPORT_3, this->dbwDbc_}; 
+    if (this->dbwDbc_.GetMessageCount() == 0) {
+        std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
+    }
+    dbcFrame("engine_oil_temperature", powertrainData.engine_oil_temperature)
+            ("torque_wheels", powertrainData.torque_wheels_nm);
+            // ("driver_traction_aim_swicth_fbk", powertrainData.driver_traction_aim_switch)
+            // ("driver_traction_range_switch_fbk", powertrainData.driver_traction_range_switch);
+    frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
+    this->canPublisher_->publish(std::move(frame)); 
+
   }
 
   void SutTeBridgeNode::publishGroundTruthArray()
@@ -1327,6 +1631,9 @@ namespace bridge {
       this->novaTelHeading2Publisher = this->novaTelHeading2Publisher1_;
       this->novaTelRawImuPublisher = this->novaTelRawImuPublisher1_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher1_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher1_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher1_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher1_;
       }
     else if (novatelID == 2)
     {
@@ -1339,6 +1646,9 @@ namespace bridge {
       this->novaTelHeading2Publisher = this->novaTelHeading2Publisher2_;
       this->novaTelRawImuPublisher = this->novaTelRawImuPublisher2_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher2_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher2_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher2_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher2_;
     }
     else
     {
@@ -1540,7 +1850,7 @@ namespace bridge {
 
     this->novaTelHeading2Publisher->publish(heading2);
 
-    // Raw IMU
+    // Raw IMU 
     auto rawImu = novatel_oem7_msgs::msg::RAWIMU();
 
     rawImu.nov_header.message_name = currentNovatel.raw_imu_var.nov_header_var.message_name[0];
@@ -1600,7 +1910,12 @@ namespace bridge {
     for (size_t i = 0; i < 9; i++) {rawImuX.linear_acceleration_covariance[i] = 0;}
 
     // Header
-    rawImuX.header.frame_id = "ego";
+    if (novatelID == 1){
+      rawImuX.header.frame_id = "gps_top_imu";
+    }
+    else{
+      rawImuX.header.frame_id = "gps_bottom_imu";
+    }
 
     if(this->simModeEnabled)
     {
@@ -1614,7 +1929,270 @@ namespace bridge {
     }
 
     this->novaTelRawImuXPublisher->publish(rawImuX);
+
+    // Imu (imu/data)
+    // std::cout << "Checkpoint: Initializing IMU message" << std::endl;
+    auto imuMsg = sensor_msgs::msg::Imu();
+
+    // std::cout << "Checkpoint: Getting latitude, longitude, and height" << std::endl;
+    double lat = currentNovatel.best_pos_var.lat;
+    double lon =currentNovatel.best_pos_var.lon;
+    double height = currentNovatel.best_pos_var.hgt;
+
+    // std::cout << "Checkpoint: Calculating yaw" << std::endl;
+    double yaw = currentNovatel.heading_2_var.heading + 90.0;
+    yaw = yaw * (3.1415926535 / 180.0);
+
+    double cy = std::cos(yaw * 0.5);
+    double sy = std::sin(yaw * 0.5);
+
+    imuMsg.orientation.x = 0.0; 
+    imuMsg.orientation.y = 0.0;
+    imuMsg.orientation.z = sy;
+    imuMsg.orientation.w = cy;
+
+    // std::cout << "Checkpoint: 1" << std::endl;
+    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = 0;}
+    
+    imuMsg.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    imuMsg.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    imuMsg.angular_velocity.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.angular_velocity_covariance[i] = 0;}
+
+    imuMsg.linear_acceleration.x = currentNovatel.raw_imu_var.linear_acceleration_var.x;
+    imuMsg.linear_acceleration.y = currentNovatel.raw_imu_var.linear_acceleration_var.y;
+    imuMsg.linear_acceleration.z = currentNovatel.raw_imu_var.linear_acceleration_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.linear_acceleration_covariance[i] = 0;}
+
+    // std::cout << "Checkpoint: 2" << std::endl;
+    // Header
+    if (novatelID == 1)
+    {
+      imuMsg.header.frame_id = "gps_top";
+    }
+    else
+    {
+      imuMsg.header.frame_id = "gps_bottom";
+    }
+
+    // std::cout << "Checkpoint: 3" << std::endl;
+    if(this->simModeEnabled)
+    {
+      imuMsg.header.stamp.sec = this->sec;
+      imuMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      imuMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      imuMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    // std::cout << "Checkpoint: 4" << std::endl;
+    this->novaTelImuPublisher->publish(imuMsg);
+
+    //Nav Sat Fix 
+    auto fixMsg = sensor_msgs::msg::NavSatFix();
+
+    fixMsg.status.status = 2;
+    fixMsg.status.service = 3;
+    fixMsg.latitude = currentNovatel.best_pos_var.lat; //seems lat and lon are switched for inspva, so use novatel instead
+    fixMsg.longitude = currentNovatel.best_pos_var.lon;
+    fixMsg.altitude = currentNovatel.inspava_var.height;
+    fixMsg.position_covariance_type = 2;
+    // Header
+    if (novatelID == 1)
+    {
+      fixMsg.header.frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      fixMsg.header.frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      fixMsg.header.stamp.sec = this->sec;
+      fixMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      fixMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      fixMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelFixPublisher->publish(fixMsg);
+
+    //Odom
+    auto odomMsg = nav_msgs::msg::Odometry();
+
+    double easting, northing;
+    int zone;
+    bool north;
+    GeographicLib::UTMUPS::Forward(lat, lon, zone, north, easting, northing);
+    // Now `x` and `y` contain the UTM coordinates, and `zone` and `north` indicate the UTM zone
+
+    odomMsg.pose.pose.position.x = easting;
+    odomMsg.pose.pose.position.y = northing;
+    odomMsg.pose.pose.position.z = height;
+    odomMsg.pose.pose.orientation.x = 0.0; 
+    odomMsg.pose.pose.orientation.y = 0.0;
+    odomMsg.pose.pose.orientation.z = sy;
+    odomMsg.pose.pose.orientation.w = cy;
+
+    for (size_t i = 0; i < 9; i++) {odomMsg.pose.covariance[i] = 0;}
+    
+    double fl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_left;
+    double fr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_right;
+    double rl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_left;
+    double rr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_right;
+    double vx = (fl + fr + rl + rr) / 4.0 / 3.6;
+
+    odomMsg.twist.twist.linear.x = vx;
+
+
+    odomMsg.twist.twist.angular.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    odomMsg.twist.twist.angular.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    odomMsg.twist.twist.angular.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {odomMsg.twist.covariance[i] = 0;}
+
+    // Header
+    if (novatelID == 1)
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      odomMsg.header.stamp.sec = this->sec;
+      odomMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      odomMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      odomMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelOdomPublisher->publish(odomMsg);
+
   }
+
+  void SutTeBridgeNode::canSubscriberCallback(Frame::UniquePtr msg) 
+  {
+    static constexpr std::string_view fl = "FL";
+    static constexpr std::string_view fr = "FR";
+    static constexpr std::string_view rl = "RL";
+    static constexpr std::string_view rr = "RR";
+    static constexpr uint8_t part1 = 1;
+    static constexpr uint8_t part2 = 2;
+    static constexpr uint8_t part3 = 3;
+    static constexpr uint8_t part4 = 4;
+
+    if (msg->is_rtr || msg->is_error) return;
+
+    switch (static_cast<MessageID>(msg->id)) {
+      case MessageID::BRAKE_PRESSURE_CMD:
+        recvBrakePressureCmd(*msg);
+        break;
+
+      case MessageID::ACCELERATOR_CMD:
+        recvAcceleratorCmd(*msg);
+        break;
+
+      case MessageID::STEERING_CMD:
+        recvSteeringCmd(*msg);
+        break;
+
+      case MessageID::GEAR_SHIFT_CMD:
+        recvGearShiftCmd(*msg);
+        break;
+
+      case MessageID::CT_REPORT:
+        recvCtReport(*msg);
+        break;
+
+      default:
+        break;
+    }
+  } // end can subscriber callback
+
+  void SutTeBridgeNode::recvBrakePressureCmd(const Frame& msg) {
+    Time stamp;
+    DbcFrameRx dbcFrame{msg, MessageID::BRAKE_PRESSURE_CMD, dbwDbc_, stamp};
+    if (!dbcFrame.valid()){
+    std::cout << "DBC file LOAD FAILED" << '\n'; 
+    return;
+    }
+    dbcFrame("brake_pressure_cmd", this->feedbackCmd.vehicle_inputs.brake_cmd)
+            ("brk_pressure_cmd_counter", this->feedbackCmd.vehicle_inputs.brake_cmd_count);
+    
+    this->feedbackCmd.vehicle_inputs.enable_brake_cmd = 1;
+    this->feedbackDataAvailabe = true;
+  }
+
+  void SutTeBridgeNode::recvAcceleratorCmd(const Frame& msg) {
+    Time stamp;
+    DbcFrameRx dbcFrame{msg, MessageID::ACCELERATOR_CMD, dbwDbc_, stamp};
+    if (!dbcFrame.valid()){
+    std::cout << "DBC file LOAD FAILED" << '\n'; 
+    return;
+    } 
+    dbcFrame("acc_pedal_cmd", this->feedbackCmd.vehicle_inputs.throttle_cmd)
+            ("acc_pedal_cmd_counter", this->feedbackCmd.vehicle_inputs.throttle_cmd_count);
+
+    this->feedbackCmd.vehicle_inputs.enable_throttle_cmd = 1;
+    this->feedbackDataAvailabe = true;
+  }
+
+  void SutTeBridgeNode::recvSteeringCmd(const Frame& msg) {
+    Time stamp;
+    DbcFrameRx dbcFrame{msg, MessageID::STEERING_CMD, dbwDbc_, stamp};
+    if (!dbcFrame.valid()){
+    std::cout << "DBC file LOAD FAILED" << '\n'; 
+    return;
+    } 
+    dbcFrame("steering_motor_ang_cmd", this->feedbackCmd.vehicle_inputs.steering_cmd)
+            ("steering_motor_cmd_counter", this->feedbackCmd.vehicle_inputs.steering_cmd_count);
+
+    this->feedbackCmd.vehicle_inputs.enable_steering_cmd = 1;
+    this->feedbackDataAvailabe = true;
+  }
+
+  void SutTeBridgeNode::recvGearShiftCmd(const Frame& msg) {
+    Time stamp;
+    DbcFrameRx dbcFrame{msg, MessageID::GEAR_SHIFT_CMD, dbwDbc_, stamp};
+    if (!dbcFrame.valid()){
+    std::cout << "DBC file LOAD FAILED" << '\n'; 
+    return;
+    } 
+    dbcFrame("desired_gear", feedbackCmd.vehicle_inputs.gear_cmd);
+
+    this->feedbackCmd.vehicle_inputs.enable_gear_cmd = 1;
+    this->feedbackDataAvailabe = true;
+  }
+
+  void SutTeBridgeNode::recvCtReport(const Frame& msg) {
+    Time stamp;
+    DbcFrameRx dbcFrame{msg, MessageID::CT_REPORT, dbwDbc_, stamp};
+    if (!dbcFrame.valid()){
+    std::cout << "DBC file LOAD FAILED" << '\n'; 
+    return;
+    } 
+    dbcFrame("veh_num", this->feedbackCmd.to_raptor.veh_num )
+            ("ct_state", this->feedbackCmd.to_raptor.ct_state) 
+            ("ct_state_rolling_counter", this->feedbackCmd.to_raptor.rolling_counter)
+            ("track_cond_ack", this->feedbackCmd.to_raptor.track_cond_ack)
+            ("veh_sig_ack", this->feedbackCmd.to_raptor.veh_sig_ack);
+
+    std::cout << "To Raptor Track Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.track_cond_ack) << std::endl; 
+    std::cout << "To Raptor Vehicle Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.veh_sig_ack) << std::endl;
+    std::cout << "To Raptor CT State: " << static_cast<int>(this->feedbackCmd.to_raptor.ct_state) << std::endl; 
+
+  }
+
 }
 
 

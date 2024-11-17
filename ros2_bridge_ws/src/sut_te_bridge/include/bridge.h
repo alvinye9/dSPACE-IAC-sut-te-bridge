@@ -50,6 +50,20 @@
 #include "ASMBus_renamed.h"
 #include "RaceControlInterface.h"
 
+#include "nav_msgs/msg/odometry.hpp"
+#include "sut-te-bridge/canid_enum.hpp"
+
+#include <can_msgs/msg/frame.hpp>
+
+#include <can_dbc_parser/Dbc.hpp>
+#include <can_dbc_parser/DbcBuilder.hpp>
+#include <can_dbc_parser/DbcMessage.hpp>
+#include <can_dbc_parser/DbcSignal.hpp>
+
+#include <GeographicLib/LocalCartesian.hpp>
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/UTMUPS.hpp>
+
 namespace bridge
 {
     class SutTeBridgeNode : public rclcpp::Node
@@ -84,6 +98,9 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher;
         rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher1_;
@@ -93,7 +110,10 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher1_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher1_;
-
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher1_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher1_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher1_;
+        
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTVEL>::SharedPtr novaTelBestVelPublisher2_;
@@ -102,12 +122,18 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher2_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher2_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher2_;
 
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr foxgloveMapPublisher_;
         rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr foxgloveScenePublisher_;
         rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr egoPositionPublisher_;
 
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr resetCommandPublisher_;
+
+        rclcpp::Publisher<Frame>::SharedPtr canPublisher_;
+        rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr canSubscriber_;
 
         // Timer
         rclcpp::TimerBase::SharedPtr updateVESIVehicleInputs_;
@@ -186,5 +212,20 @@ namespace bridge
         void publishVectorNavData();
         void publishNovatelData(uint8_t novatelID);
 
+        void canSubscriberCallback(Frame::UniquePtr msg);
+        // //Receiving CAN frames
+        void recvBrakePressureCmd(const Frame& msg);
+        void recvAcceleratorCmd(const Frame& msg);
+        void recvSteeringCmd(const Frame& msg);
+        void recvGearShiftCmd(const Frame& msg);
+        void recvCtReport(const Frame& msg);
+
+
+        void publishAllCanData();
+        void publishCanDataFromBus(bridge::MessageID can_id);
+        std::array<uint8_t, 8> getCanPayload(bridge::MessageID can_id);
+
+        std::string dbw_dbc_file_;
+        NewEagle::Dbc dbwDbc_;
     };
 }
