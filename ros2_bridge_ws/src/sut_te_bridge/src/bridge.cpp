@@ -868,8 +868,8 @@ namespace bridge {
 
       this->canPublisher_->publish(std::move(frame)); 
       
-    std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
-    std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
+    // std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
+    // std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
 
 
   }
