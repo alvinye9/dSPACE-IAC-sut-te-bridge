@@ -56,10 +56,10 @@ namespace bridge {
     }
   };
 
-  uint8_t raptor_rolling_counter_ = 0;  // Initialize rolling counter
-  void incrementRaptorRollingCounter() {
+  uint8_t accel_rolling_counter_ = 0;  
+  void incrementAccelRollingCounter() {
       // Increment and wrap around at 15 (for a 4-bit counter)
-      raptor_rolling_counter_ = (raptor_rolling_counter_ + 1) % 16;
+      accel_rolling_counter_ = (accel_rolling_counter_ + 1) % 16;
   }
 
   SutTeBridgeNode::SutTeBridgeNode() : Node("sut_te_bridge_node")
@@ -681,7 +681,7 @@ namespace bridge {
 
     // Throttle command (%)
     this->feedbackCmd.vehicle_inputs.throttle_cmd = msg.throttle_cmd;
-
+    // std::cout << "throttle cmd: " << static_cast<double>(this->feedbackCmd.vehicle_inputs.throttle_cmd) << std::endl;
     this->feedbackCmd.vehicle_inputs.throttle_cmd_count = msg.throttle_cmd_count;
     this->feedbackCmd.vehicle_inputs.enable_throttle_cmd = 1;
 
@@ -715,6 +715,12 @@ namespace bridge {
     this->feedbackCmd.to_raptor.veh_sig_ack = msg.veh_sig_ack;
     this->feedbackCmd.to_raptor.ct_state = msg.ct_state;
     this->feedbackCmd.to_raptor.rolling_counter = msg.rolling_counter;
+
+    // std::cout << "To Raptor Track Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.track_cond_ack) << std::endl; 
+    // std::cout << "To Raptor Vehicle Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.veh_sig_ack) << std::endl;
+    // std::cout << "To Raptor CT State: " << static_cast<int>(this->feedbackCmd.to_raptor.ct_state) << std::endl; 
+    // std::cout << "Veh Num: " << static_cast<int>(msg.veh_num) << std::endl;  
+
     if (msg.veh_num != 0)
     {
       this->feedbackCmd.to_raptor.veh_num = msg.veh_num;
@@ -791,7 +797,10 @@ namespace bridge {
       raceControlData.time_stamp = this->canBus->asm_bus_var.race_control_var.time_stamp;
     }
     
-    
+    // std::cout << "Race Control Track Flag: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.track_flag) << std::endl; 
+    // std::cout << "Race Control Vehicle Flag: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.veh_flag) << std::endl; 
+    // std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
+    // std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
 
     // Header
     raceControlData.header.frame_id = "";
@@ -809,7 +818,7 @@ namespace bridge {
 
     if (this->useCustomRaceControl == false)
     {
-      this->raceControlDataPublisher_->publish(raceControlData);
+      this->raceControlDataPublisher_->publish(raceControlData);  
     }
   
     //PUBLISH BASE_TO_CAR_TIMING
@@ -838,13 +847,13 @@ namespace bridge {
     if (this->dbwDbc_.GetMessageCount() == 0) {
         std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
     }
-    dbcFrame("base_to_car_heartbeat", raceControlData.base_to_car_heartbeat)
-            ("veh_rank", raceControlData.veh_rank)
-            ("lap_count", raceControlData.lap_count)
-            ("lap_distance", raceControlData.lap_distance)
-            ("round_target_speed", raceControlData.round_target_speed)
-            ("track_flag", raceControlData.track_flag)
-            ("veh_flag", raceControlData.veh_flag);
+    dbcFrame("base_to_car_heartbeat", this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat)
+            ("veh_rank", this->canBus->asm_bus_var.race_control_var.veh_rank)
+            ("lap_count", this->canBus->asm_bus_var.race_control_var.lap_count)
+            ("lap_distance", this->canBus->asm_bus_var.race_control_var.lap_distance)
+            ("round_target_speed", this->canBus->asm_bus_var.race_control_var.round_target_speed)
+            ("track_flag", this->canBus->asm_bus_var.race_control_var.track_flag)
+            ("veh_flag", this->canBus->asm_bus_var.race_control_var.veh_flag);
       frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
       if(this->simModeEnabled)
       {
@@ -858,6 +867,10 @@ namespace bridge {
       }
 
       this->canPublisher_->publish(std::move(frame)); 
+      
+    std::cout << "Sys State: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.sys_state) << std::endl; 
+    std::cout << "Base to Car Heartbeat: " << static_cast<int>(this->canBus->asm_bus_var.race_control_var.base_to_car_heartbeat) << std::endl; 
+
 
   }
 
@@ -941,22 +954,19 @@ namespace bridge {
       vehicleData.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (vehicleData.header.stamp.sec*1000000000);
     }
 
-    this->vehicleDataPublisher_->publish(vehicleData);
+    this->vehicleDataPublisher_->publish(vehicleData); 
 
     // PUBLISH MISC_REPORT
     DbcFrameTx dbcFrame{MessageID::MISC_REPORT, this->dbwDbc_}; 
     if (this->dbwDbc_.GetMessageCount() == 0) {
         std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
     }
-    // else{
-    //   std::cout << "DBC file loaded correctly" << '\n'; 
-    // }
-    int sys_state_value = 9; //driving
-    dbcFrame("battery_voltage", vehicleData.battery_voltage) 
+    double battery_voltage_value = 14.0; 
+    dbcFrame("battery_voltage", battery_voltage_value) //vehicleData.battery_voltage) 
             ("safety_switch_state", 4.0) //vehicleData.safety_switch_state)
             ("mode_switch_state", false) //false: race mode, true: test mode //vehicleData.mode_switch_state)
-            ("sys_state", sys_state_value) //vehicleData.sys_state)
-            ("raptor_rolling_counter", raptor_rolling_counter_);
+            ("sys_state", this->canBus->asm_bus_var.race_control_var.sys_state);
+            // ("raptor_rolling_counter", rolling_counter_); //seems unused
     auto frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
     if(this->simModeEnabled)
     {
@@ -976,7 +986,7 @@ namespace bridge {
         std::cerr << "DBC file is not loaded or contains no messages." << std::endl;
     }
     dbcFrame("acc_pedal_fdbk", vehicleData.accel_pedal_output)
-            ("acc_pedal_fdbk_counter", raptor_rolling_counter_);
+            ("acc_pedal_fdbk_counter", accel_rolling_counter_);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame()); //overwrite can frame msg
     if(this->simModeEnabled)
     {
@@ -989,6 +999,9 @@ namespace bridge {
       frame->header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
     }
     this->canPublisher_->publish(std::move(frame)); 
+
+    // std::cout << "Accel Rolling Counter: " << static_cast<int>(accel_rolling_counter_) << std::endl; 
+    incrementAccelRollingCounter();
 
     //PUBLISH STEERING_REPORT_EXTD
     dbcFrame = DbcFrameTx{MessageID::STEERING_REPORT_EXTD, this->dbwDbc_}; 
@@ -1040,7 +1053,7 @@ namespace bridge {
     }
     dbcFrame("brake_pressure_fdbk_front", vehicleData.front_brake_pressure)
             ("brake_pressure_fdbk_rear", vehicleData.rear_brake_pressure)
-            ("brk_pressure_fdbk_counter", raptor_rolling_counter_);
+            ("brk_pressure_fdbk_counter", accel_rolling_counter_);
     frame = std::make_unique<Frame>(dbcFrame.message->GetFrame());
     if(this->simModeEnabled)
     {
@@ -2115,6 +2128,9 @@ namespace bridge {
     }
     dbcFrame("brake_pressure_cmd", this->feedbackCmd.vehicle_inputs.brake_cmd)
             ("brk_pressure_cmd_counter", this->feedbackCmd.vehicle_inputs.brake_cmd_count);
+    
+    this->feedbackCmd.vehicle_inputs.enable_brake_cmd = 1;
+    this->feedbackDataAvailabe = true;
   }
 
   void SutTeBridgeNode::recvAcceleratorCmd(const Frame& msg) {
@@ -2127,7 +2143,8 @@ namespace bridge {
     dbcFrame("acc_pedal_cmd", this->feedbackCmd.vehicle_inputs.throttle_cmd)
             ("acc_pedal_cmd_counter", this->feedbackCmd.vehicle_inputs.throttle_cmd_count);
 
-    // std::cout << "Incoming throttle cmd: " << static_cast<double>(this->feedbackCmd.vehicle_inputs.throttle_cmd) << std::endl; // seems to work
+    this->feedbackCmd.vehicle_inputs.enable_throttle_cmd = 1;
+    this->feedbackDataAvailabe = true;
   }
 
   void SutTeBridgeNode::recvSteeringCmd(const Frame& msg) {
@@ -2139,6 +2156,9 @@ namespace bridge {
     } 
     dbcFrame("steering_motor_ang_cmd", this->feedbackCmd.vehicle_inputs.steering_cmd)
             ("steering_motor_cmd_counter", this->feedbackCmd.vehicle_inputs.steering_cmd_count);
+
+    this->feedbackCmd.vehicle_inputs.enable_steering_cmd = 1;
+    this->feedbackDataAvailabe = true;
   }
 
   void SutTeBridgeNode::recvGearShiftCmd(const Frame& msg) {
@@ -2149,6 +2169,9 @@ namespace bridge {
     return;
     } 
     dbcFrame("desired_gear", feedbackCmd.vehicle_inputs.gear_cmd);
+
+    this->feedbackCmd.vehicle_inputs.enable_gear_cmd = 1;
+    this->feedbackDataAvailabe = true;
   }
 
   void SutTeBridgeNode::recvCtReport(const Frame& msg) {
@@ -2159,8 +2182,15 @@ namespace bridge {
     return;
     } 
     dbcFrame("veh_num", this->feedbackCmd.to_raptor.veh_num )
-            ("ct_state", this->feedbackCmd.to_raptor.ct_state) //should be ct = 9 for NOM_RACE
-            ("ct_state_rolling_counter", this->feedbackCmd.to_raptor.rolling_counter);
+            ("ct_state", this->feedbackCmd.to_raptor.ct_state) 
+            ("ct_state_rolling_counter", this->feedbackCmd.to_raptor.rolling_counter)
+            ("track_cond_ack", this->feedbackCmd.to_raptor.track_cond_ack)
+            ("veh_sig_ack", this->feedbackCmd.to_raptor.veh_sig_ack);
+
+    std::cout << "To Raptor Track Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.track_cond_ack) << std::endl; 
+    std::cout << "To Raptor Vehicle Ack Flag: " << static_cast<int>(this->feedbackCmd.to_raptor.veh_sig_ack) << std::endl;
+    std::cout << "To Raptor CT State: " << static_cast<int>(this->feedbackCmd.to_raptor.ct_state) << std::endl; 
+
   }
 
 }
