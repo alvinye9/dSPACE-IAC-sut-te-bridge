@@ -3,18 +3,24 @@ FROM ros:humble-ros-base AS sut-te-bridge_base
 SHELL ["/bin/bash", "-c"]
 
 ENV LD_LIBRARY_PATH=/opt/VESI/lib
-ENV SIM_CLOCK_MODE=false
+ENV SIM_CLOCK_MODE=false  
 ENV ENABLE_LOG=false
 
 RUN apt-get update
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends openssh-server xauth build-essential libboost-all-dev python3-colcon-common-extensions git cmake g++ software-properties-common gdb wget python3-pip debconf python3 python3-setuptools ros-humble-rmw-cyclonedds-cpp
+    apt-get install -y --no-install-recommends openssh-server xauth build-essential libboost-all-dev python3-colcon-common-extensions git cmake g++ software-properties-common gdb wget python3-pip debconf python3 python3-setuptools ros-humble-rmw-cyclonedds-cpp 
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    geographiclib-tools \
+    libgeographic-dev
 
 RUN rosdep update && \
     echo 'source /opt/ros/humble/local_setup.bash' >> /root/.bashrc
 
 RUN mkdir -p /opt/VESI/lib 
-COPY sut-te-bridge/ros2_bridge_ws/src/sut_te_bridge/include/V-ESI-API/lib/linux/libVESIAPI.so /opt/VESI/lib/
+# COPY sut-te-bridge/ros2_bridge_ws/src/sut_te_bridge/include/V-ESI-API/lib/linux/libVESIAPI.so /opt/VESI/lib/
+COPY ros2_bridge_ws/src/sut_te_bridge/include/V-ESI-API/lib/linux/libVESIAPI.so /opt/VESI/lib/
 
 RUN ldconfig
 
@@ -46,7 +52,8 @@ WORKDIR /root/runtime_scripts
 
 FROM sut-te-bridge_base AS sut-te-bridge_simphera
 
-COPY sut-te-bridge/ros2_bridge_ws /root/ros2_bridge_ws
+# COPY sut-te-bridge/ros2_bridge_ws /root/ros2_bridge_ws
+COPY ros2_bridge_ws /root/ros2_bridge_ws
 RUN mkdir -p /root/record_log && \
     source /opt/ros/humble/local_setup.bash && \
     source /root/ros_ws_aux/install/local_setup.bash && \

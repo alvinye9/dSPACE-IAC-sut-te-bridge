@@ -141,19 +141,24 @@ namespace bridge {
       this->novaTelBestGNSSPosPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_top/bestgnsspos", qos);
       this->novaTelBestVelPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::BESTVEL>("novatel_top/bestvel", qos);
       this->novaTelBestGNSSVelPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::BESTVEL>("novatel_top/bestgnssvel", qos);
-      this->novaTelInspvaPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_top/inspva", qos);
-      this->novaTelHeading2Publisher1_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_top/heading2", qos);
-      this->novaTelRawImuPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_top/rawimu", qos);
-      this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/rawimux", qos);
+      // this->novaTelInspvaPublisher1_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_top/inspva", qos);
+      // this->novaTelHeading2Publisher1_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_top/heading2", qos);
+      this->novaTelRawImuXPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data_raw", qos);
+      this->novaTelImuPublisher1_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_top/imu/data", qos);
+      this->novaTelOdomPublisher1_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_top/odom", qos);
+      this->novaTelFixPublisher1_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_top/fix", qos);
+
 
       this->novaTelBestPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestpos", qos);
       this->novaTelBestGNSSPosPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTPOS>("novatel_bottom/bestgnsspos", qos);
       this->novaTelBestVelPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTVEL>("novatel_bottom/bestvel", qos);
       this->novaTelBestGNSSVelPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::BESTVEL>("novatel_bottom/bestgnssvel", qos);
-      this->novaTelInspvaPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_bottom/inspva", qos);
-      this->novaTelHeading2Publisher2_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_bottom/heading2", qos);
-      this->novaTelRawImuPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::RAWIMU>("novatel_bottom/rawimu", qos);
-      this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/rawimux", qos);
+      // this->novaTelInspvaPublisher2_ = this->create_publisher<novatel_oem7_msgs::msg::INSPVA>("novatel_bottom/inspva", qos);
+      // this->novaTelHeading2Publisher2_ = this->create_publisher<novatel_oem7_msgs::msg::HEADING2>("novatel_bottom/heading2", qos);
+      this->novaTelRawImuXPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data_raw", qos);
+      this->novaTelImuPublisher2_ = this->create_publisher<sensor_msgs::msg::Imu>("novatel_bottom/imu/data", qos);
+      this->novaTelOdomPublisher2_ = this->create_publisher<nav_msgs::msg::Odometry>("novatel_bottom/odom", qos);
+      this->novaTelFixPublisher2_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("novatel_bottom/fix", qos);
 
       this->foxgloveMapPublisher_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("foxglove_map", qos);
       this->foxgloveScenePublisher_ = this->create_publisher<foxglove_msgs::msg::SceneUpdate>("foxglove_scene", qos);
@@ -1323,10 +1328,12 @@ namespace bridge {
       this->novaTelBestGNSSPosPublisher = this->novaTelBestGNSSPosPublisher1_;
       this->novaTelBestVelPublisher = this->novaTelBestVelPublisher1_;
       this->novaTelBestGNSSVelPublisher = this->novaTelBestGNSSVelPublisher1_;
-      this->novaTelInspvaPublisher = this->novaTelInspvaPublisher1_;
-      this->novaTelHeading2Publisher = this->novaTelHeading2Publisher1_;
-      this->novaTelRawImuPublisher = this->novaTelRawImuPublisher1_;
+      // this->novaTelInspvaPublisher = this->novaTelInspvaPublisher1_;
+      // this->novaTelHeading2Publisher = this->novaTelHeading2Publisher1_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher1_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher1_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher1_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher1_;
       }
     else if (novatelID == 2)
     {
@@ -1335,10 +1342,12 @@ namespace bridge {
       this->novaTelBestGNSSPosPublisher = this->novaTelBestGNSSPosPublisher2_;
       this->novaTelBestVelPublisher = this->novaTelBestVelPublisher2_;
       this->novaTelBestGNSSVelPublisher = this->novaTelBestGNSSVelPublisher2_;
-      this->novaTelInspvaPublisher = this->novaTelInspvaPublisher2_;
-      this->novaTelHeading2Publisher = this->novaTelHeading2Publisher2_;
-      this->novaTelRawImuPublisher = this->novaTelRawImuPublisher2_;
+      // this->novaTelInspvaPublisher = this->novaTelInspvaPublisher2_;
+      // this->novaTelHeading2Publisher = this->novaTelHeading2Publisher2_;
       this->novaTelRawImuXPublisher = this->novaTelRawImuXPublisher2_;
+      this->novaTelImuPublisher = this->novaTelImuPublisher2_;
+      this->novaTelOdomPublisher = this->novaTelOdomPublisher2_;
+      this->novaTelFixPublisher = this->novaTelFixPublisher2_;
     }
     else
     {
@@ -1346,20 +1355,26 @@ namespace bridge {
     }
     
     // Best Pos
-    auto bestPos = novatel_oem7_msgs::msg::BESTPOS();
 
+    std::pair<uint16_t, uint32_t> gps_week_and_ms = GetGPSWeekAndMS();
+    uint16_t gps_week_ = gps_week_and_ms.first;
+    uint32_t gps_week_ms_ = gps_week_and_ms.second;
+    float covariance_val = 0.0001;
+
+    auto bestPos = novatel_oem7_msgs::msg::BESTPOS();
     bestPos.nov_header.message_name = currentNovatel.best_pos_var.nov_header_var.message_name[0];
-    bestPos.nov_header.message_id = currentNovatel.best_pos_var.nov_header_var.message_id;
-    bestPos.nov_header.message_type = currentNovatel.best_pos_var.nov_header_var.message_type;
-    bestPos.nov_header.sequence_number = currentNovatel.best_pos_var.nov_header_var.sequence_number;
-    bestPos.nov_header.time_status = currentNovatel.best_pos_var.nov_header_var.time_status;
-    bestPos.nov_header.gps_week_number = currentNovatel.best_pos_var.nov_header_var.gps_week_number;
-    bestPos.nov_header.gps_week_milliseconds = currentNovatel.best_pos_var.nov_header_var.gps_week_milliseconds;
-    bestPos.nov_header.idle_time = currentNovatel.best_pos_var.nov_header_var.idle_time;
+    bestPos.nov_header.message_id = 0; //currentNovatel.best_pos_var.nov_header_var.message_id;
+    bestPos.nov_header.message_type = 0; //currentNovatel.best_pos_var.nov_header_var.message_type;
+    bestPos.nov_header.sequence_number = 0; //currentNovatel.best_pos_var.nov_header_var.sequence_number;
+    bestPos.nov_header.time_status = 0; //currentNovatel.best_pos_var.nov_header_var.time_status;
+    bestPos.nov_header.gps_week_number = gps_week_; //currentNovatel.best_pos_var.nov_header_var.gps_week_number;
+    bestPos.nov_header.gps_week_milliseconds = gps_week_ms_; //currentNovatel.best_pos_var.nov_header_var.gps_week_milliseconds;
+    bestPos.nov_header.idle_time = 0; //currentNovatel.best_pos_var.nov_header_var.idle_time;
+    bestPos.nov_header.receiver_status = 0;
 
     bestPos.sol_status.status = currentNovatel.best_pos_var.sol_status;
 
-    bestPos.pos_type.type = currentNovatel.best_pos_var.pos_type;
+    bestPos.pos_type.type = 50; //currentNovatel.best_pos_var.pos_type;
     
     bestPos.lat = currentNovatel.best_pos_var.lat;
     bestPos.lon = currentNovatel.best_pos_var.lon;
@@ -1375,21 +1390,26 @@ namespace bridge {
     bestPos.stn_id[2] = currentNovatel.best_pos_var.stn_id[2];
     bestPos.stn_id[3] = currentNovatel.best_pos_var.stn_id[3];
 
-    bestPos.diff_age = currentNovatel.best_pos_var.diff_age;
-    bestPos.sol_age = currentNovatel.best_pos_var.sol_age;
-    bestPos.num_svs = currentNovatel.best_pos_var.num_svs;
-    bestPos.num_sol_svs = currentNovatel.best_pos_var.num_sol_svs;
-    bestPos.num_sol_l1_svs = currentNovatel.best_pos_var.num_sol_l1_svs;
-    bestPos.num_sol_multi_svs = currentNovatel.best_pos_var.num_sol_multi_svs;
-    bestPos.reserved = currentNovatel.best_pos_var.reserved;
+    bestPos.diff_age = 0.0; //currentNovatel.best_pos_var.diff_age;
+    bestPos.sol_age = 0.0; //currentNovatel.best_pos_var.sol_age;
+    bestPos.num_svs = 15; //currentNovatel.best_pos_var.num_svs;
+    bestPos.num_sol_svs = 12; //currentNovatel.best_pos_var.num_sol_svs;
+    bestPos.num_sol_l1_svs = 6; //currentNovatel.best_pos_var.num_sol_l1_svs;
+    bestPos.num_sol_multi_svs = 6; //currentNovatel.best_pos_var.num_sol_multi_svs;
+    bestPos.reserved = 0; //currentNovatel.best_pos_var.reserved;
+    bestPos.ext_sol_stat.status = 0; //currentNovatel.best_pos_var.ext_sol_stat;
 
-    bestPos.ext_sol_stat.status = currentNovatel.best_pos_var.ext_sol_stat;
-
-    bestPos.galileo_beidou_sig_mask = currentNovatel.best_pos_var.galileo_beidou_sig_mask;
-    bestPos.gps_glonass_sig_mask = currentNovatel.best_pos_var.gps_glonass_sig_mask;
+    bestPos.galileo_beidou_sig_mask = 0; //currentNovatel.best_pos_var.galileo_beidou_sig_mask;
+    bestPos.gps_glonass_sig_mask = 0; //currentNovatel.best_pos_var.gps_glonass_sig_mask;
 
     // Header
-    bestPos.header.frame_id = "world";
+    // if (novatelID == 2){ //bottom
+    //   bestPos.header.frame_id = "world";
+    // }
+    // else{
+    //   bestPos.header.frame_id = "";
+    // }
+    bestPos.header.frame_id = "";
 
     if(this->simModeEnabled)
     {
@@ -1409,17 +1429,18 @@ namespace bridge {
     auto bestVel = novatel_oem7_msgs::msg::BESTVEL();
 
     bestVel.nov_header.message_name = currentNovatel.best_vel_var.nov_header_var.message_name[0];
-    bestVel.nov_header.message_id = currentNovatel.best_vel_var.nov_header_var.message_id;
-    bestVel.nov_header.message_type = currentNovatel.best_vel_var.nov_header_var.message_type;
-    bestVel.nov_header.sequence_number = currentNovatel.best_vel_var.nov_header_var.sequence_number;
-    bestVel.nov_header.time_status = currentNovatel.best_vel_var.nov_header_var.time_status;
-    bestVel.nov_header.gps_week_number = currentNovatel.best_vel_var.nov_header_var.gps_week_number;
-    bestVel.nov_header.gps_week_milliseconds = currentNovatel.best_vel_var.nov_header_var.gps_week_milliseconds;
-    bestVel.nov_header.idle_time = currentNovatel.best_vel_var.nov_header_var.idle_time;
+    bestVel.nov_header.message_id = 0; //currentNovatel.best_vel_var.nov_header_var.message_id;
+    bestVel.nov_header.message_type = 0; //currentNovatel.best_vel_var.nov_header_var.message_type;
+    bestVel.nov_header.sequence_number = 0; //currentNovatel.best_vel_var.nov_header_var.sequence_number;
+    bestVel.nov_header.time_status = 0; //currentNovatel.best_vel_var.nov_header_var.time_status;
+    bestVel.nov_header.gps_week_number = gps_week_; //currentNovatel.best_vel_var.nov_header_var.gps_week_number;
+    bestVel.nov_header.gps_week_milliseconds = gps_week_ms_; //currentNovatel.best_vel_var.nov_header_var.gps_week_milliseconds;
+    bestVel.nov_header.idle_time = 0.0; //currentNovatel.best_vel_var.nov_header_var.idle_time;
+    bestVel.nov_header.receiver_status = 0;
 
-    bestVel.sol_status.status = currentNovatel.best_vel_var.sol_status;
+    bestVel.sol_status.status = 50; //currentNovatel.best_vel_var.sol_status;
 
-    bestVel.vel_type.type = currentNovatel.best_vel_var.vel_type;
+    bestVel.vel_type.type = 0; //currentNovatel.best_vel_var.vel_type;
     
     bestVel.latency = currentNovatel.best_vel_var.latency;
     bestVel.diff_age = currentNovatel.best_vel_var.diff_age;
@@ -1429,7 +1450,7 @@ namespace bridge {
     bestVel.reserved = currentNovatel.best_vel_var.reserved;
 
     // Header
-    bestVel.header.frame_id = "ego";
+    bestVel.header.frame_id = "";
 
     if(this->simModeEnabled)
     {
@@ -1445,162 +1466,131 @@ namespace bridge {
     this->novaTelBestVelPublisher->publish(bestVel);
     this->novaTelBestGNSSVelPublisher->publish(bestVel);
 
-    // Inspva
-    auto inspva = novatel_oem7_msgs::msg::INSPVA();
+    // // Inspva
+    // auto inspva = novatel_oem7_msgs::msg::INSPVA();
 
-    inspva.nov_header.message_name = currentNovatel.inspava_var.nov_header_var.message_name[0];
-    inspva.nov_header.message_id = currentNovatel.inspava_var.nov_header_var.message_id;
-    inspva.nov_header.message_type = currentNovatel.inspava_var.nov_header_var.message_type;
-    inspva.nov_header.sequence_number = currentNovatel.inspava_var.nov_header_var.sequence_number;
-    inspva.nov_header.time_status = currentNovatel.inspava_var.nov_header_var.time_status;
-    inspva.nov_header.gps_week_number = currentNovatel.inspava_var.nov_header_var.gps_week_number;
-    inspva.nov_header.gps_week_milliseconds = currentNovatel.inspava_var.nov_header_var.gps_week_milliseconds;
-    inspva.nov_header.idle_time = currentNovatel.inspava_var.nov_header_var.idle_time;
+    // inspva.nov_header.message_name = currentNovatel.inspava_var.nov_header_var.message_name[0];
+    // inspva.nov_header.message_id = currentNovatel.inspava_var.nov_header_var.message_id;
+    // inspva.nov_header.message_type = currentNovatel.inspava_var.nov_header_var.message_type;
+    // inspva.nov_header.sequence_number = currentNovatel.inspava_var.nov_header_var.sequence_number;
+    // inspva.nov_header.time_status = currentNovatel.inspava_var.nov_header_var.time_status;
+    // inspva.nov_header.gps_week_number = currentNovatel.inspava_var.nov_header_var.gps_week_number;
+    // inspva.nov_header.gps_week_milliseconds = currentNovatel.inspava_var.nov_header_var.gps_week_milliseconds;
+    // inspva.nov_header.idle_time = currentNovatel.inspava_var.nov_header_var.idle_time;
 
-    inspva.latitude = currentNovatel.inspava_var.latitude;
-    inspva.longitude = currentNovatel.inspava_var.longitude;
-    inspva.height = currentNovatel.inspava_var.height;
-    inspva.north_velocity = currentNovatel.inspava_var.north_velocity;
-    inspva.east_velocity = currentNovatel.inspava_var.east_velocity;
-    inspva.up_velocity = currentNovatel.inspava_var.up_velocity;
-    inspva.roll = currentNovatel.inspava_var.roll;
-    inspva.pitch = currentNovatel.inspava_var.pitch;
-    inspva.azimuth = currentNovatel.inspava_var.azimuth;
+    // inspva.latitude = currentNovatel.inspava_var.latitude;
+    // inspva.longitude = currentNovatel.inspava_var.longitude;
+    // inspva.height = currentNovatel.inspava_var.height;
+    // inspva.north_velocity = currentNovatel.inspava_var.north_velocity;
+    // inspva.east_velocity = currentNovatel.inspava_var.east_velocity;
+    // inspva.up_velocity = currentNovatel.inspava_var.up_velocity;
+    // inspva.roll = currentNovatel.inspava_var.roll;
+    // inspva.pitch = currentNovatel.inspava_var.pitch;
+    // inspva.azimuth = currentNovatel.inspava_var.azimuth;
 
-    inspva.status.status = currentNovatel.inspava_var.status_var.status_var;
+    // inspva.status.status = currentNovatel.inspava_var.status_var.status_var;
 
-    // Header
-    inspva.header.frame_id = "world";
+    // // Header
+    // inspva.header.frame_id = "world";
 
-    if(this->simModeEnabled)
-    {
-      inspva.header.stamp.sec = this->sec;
-      inspva.header.stamp.nanosec = this->nsec;
-    }
-    else
-    {
-      inspva.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-      inspva.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (inspva.header.stamp.sec*1000000000);
-    }
+    // if(this->simModeEnabled)
+    // {
+    //   inspva.header.stamp.sec = this->sec;
+    //   inspva.header.stamp.nanosec = this->nsec;
+    // }
+    // else
+    // {
+    //   inspva.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    //   inspva.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (inspva.header.stamp.sec*1000000000);
+    // }
 
-    this->novaTelInspvaPublisher->publish(inspva);
+    // this->novaTelInspvaPublisher->publish(inspva);
 
-    // Heading 2
-    auto heading2 = novatel_oem7_msgs::msg::HEADING2();
+    // // Heading 2
+    // auto heading2 = novatel_oem7_msgs::msg::HEADING2();
 
-    heading2.nov_header.message_name = currentNovatel.heading_2_var.nov_header_var.message_name[0];
-    heading2.nov_header.message_id = currentNovatel.heading_2_var.nov_header_var.message_id;
-    heading2.nov_header.message_type = currentNovatel.heading_2_var.nov_header_var.message_type;
-    heading2.nov_header.sequence_number = currentNovatel.heading_2_var.nov_header_var.sequence_number;
-    heading2.nov_header.time_status = currentNovatel.heading_2_var.nov_header_var.time_status;
-    heading2.nov_header.gps_week_number = currentNovatel.heading_2_var.nov_header_var.gps_week_number;
-    heading2.nov_header.gps_week_milliseconds = currentNovatel.heading_2_var.nov_header_var.gps_week_milliseconds;
-    heading2.nov_header.idle_time = currentNovatel.heading_2_var.nov_header_var.idle_time;
+    // heading2.nov_header.message_name = currentNovatel.heading_2_var.nov_header_var.message_name[0];
+    // heading2.nov_header.message_id = currentNovatel.heading_2_var.nov_header_var.message_id;
+    // heading2.nov_header.message_type = currentNovatel.heading_2_var.nov_header_var.message_type;
+    // heading2.nov_header.sequence_number = currentNovatel.heading_2_var.nov_header_var.sequence_number;
+    // heading2.nov_header.time_status = currentNovatel.heading_2_var.nov_header_var.time_status;
+    // heading2.nov_header.gps_week_number = currentNovatel.heading_2_var.nov_header_var.gps_week_number;
+    // heading2.nov_header.gps_week_milliseconds = currentNovatel.heading_2_var.nov_header_var.gps_week_milliseconds;
+    // heading2.nov_header.idle_time = currentNovatel.heading_2_var.nov_header_var.idle_time;
 
-    heading2.sol_status.status = currentNovatel.heading_2_var.sol_status;
+    // heading2.sol_status.status = currentNovatel.heading_2_var.sol_status;
 
-    heading2.pos_type.type = currentNovatel.heading_2_var.pos_type;
+    // heading2.pos_type.type = currentNovatel.heading_2_var.pos_type;
 
-    heading2.length = currentNovatel.heading_2_var.length;
-    heading2.heading = currentNovatel.heading_2_var.heading;
-    heading2.pitch = currentNovatel.heading_2_var.pitch;
-    heading2.reserved = currentNovatel.heading_2_var.reserved;
-    heading2.heading_stdev = currentNovatel.heading_2_var.heading_stdev;
-    heading2.pitch_stdev = currentNovatel.heading_2_var.pitch_stdev;
-    heading2.rover_stn_id[0] = currentNovatel.heading_2_var.rover_stn_id[0];
-    heading2.rover_stn_id[1] = currentNovatel.heading_2_var.rover_stn_id[1];
-    heading2.rover_stn_id[2] = currentNovatel.heading_2_var.rover_stn_id[2];
-    heading2.rover_stn_id[3] = currentNovatel.heading_2_var.rover_stn_id[3];
-    heading2.master_stn_id[0] = currentNovatel.heading_2_var.master_stn_id[0];
-    heading2.master_stn_id[1] = currentNovatel.heading_2_var.master_stn_id[1];
-    heading2.master_stn_id[2] = currentNovatel.heading_2_var.master_stn_id[2];
-    heading2.master_stn_id[3] = currentNovatel.heading_2_var.master_stn_id[3];
-    heading2.num_sv_tracked = currentNovatel.heading_2_var.num_sv_tracked;
-    heading2.num_sv_in_sol = currentNovatel.heading_2_var.num_sv_in_sol;
-    heading2.num_sv_obs = currentNovatel.heading_2_var.num_sv_obs;
-    heading2.num_sv_multi = currentNovatel.heading_2_var.num_sv_multi;
-    heading2.sol_source.source = currentNovatel.heading_2_var.sol_source;
-    heading2.ext_sol_status.status = currentNovatel.heading_2_var.ext_sol_status;
-    heading2.galileo_beidou_sig_mask = currentNovatel.heading_2_var.galileo_beidou_sig_mask;
-    heading2.gps_glonass_sig_mask = currentNovatel.heading_2_var.gps_glonass_sig_mask;
+    // heading2.length = currentNovatel.heading_2_var.length;
+    // heading2.heading = currentNovatel.heading_2_var.heading;
+    // heading2.pitch = currentNovatel.heading_2_var.pitch;
+    // heading2.reserved = currentNovatel.heading_2_var.reserved;
+    // heading2.heading_stdev = currentNovatel.heading_2_var.heading_stdev;
+    // heading2.pitch_stdev = currentNovatel.heading_2_var.pitch_stdev;
+    // heading2.rover_stn_id[0] = currentNovatel.heading_2_var.rover_stn_id[0];
+    // heading2.rover_stn_id[1] = currentNovatel.heading_2_var.rover_stn_id[1];
+    // heading2.rover_stn_id[2] = currentNovatel.heading_2_var.rover_stn_id[2];
+    // heading2.rover_stn_id[3] = currentNovatel.heading_2_var.rover_stn_id[3];
+    // heading2.master_stn_id[0] = currentNovatel.heading_2_var.master_stn_id[0];
+    // heading2.master_stn_id[1] = currentNovatel.heading_2_var.master_stn_id[1];
+    // heading2.master_stn_id[2] = currentNovatel.heading_2_var.master_stn_id[2];
+    // heading2.master_stn_id[3] = currentNovatel.heading_2_var.master_stn_id[3];
+    // heading2.num_sv_tracked = currentNovatel.heading_2_var.num_sv_tracked;
+    // heading2.num_sv_in_sol = currentNovatel.heading_2_var.num_sv_in_sol;
+    // heading2.num_sv_obs = currentNovatel.heading_2_var.num_sv_obs;
+    // heading2.num_sv_multi = currentNovatel.heading_2_var.num_sv_multi;
+    // heading2.sol_source.source = currentNovatel.heading_2_var.sol_source;
+    // heading2.ext_sol_status.status = currentNovatel.heading_2_var.ext_sol_status;
+    // heading2.galileo_beidou_sig_mask = currentNovatel.heading_2_var.galileo_beidou_sig_mask;
+    // heading2.gps_glonass_sig_mask = currentNovatel.heading_2_var.gps_glonass_sig_mask;
     
-    // Header
-    heading2.header.frame_id = "world";
+    // // Header
+    // heading2.header.frame_id = "world";
 
-    if(this->simModeEnabled)
-    {
-      heading2.header.stamp.sec = this->sec;
-      heading2.header.stamp.nanosec = this->nsec;
-    }
-    else
-    {
-      heading2.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-      heading2.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (heading2.header.stamp.sec*1000000000);
-    }
+    // if(this->simModeEnabled)
+    // {
+    //   heading2.header.stamp.sec = this->sec;
+    //   heading2.header.stamp.nanosec = this->nsec;
+    // }
+    // else
+    // {
+    //   heading2.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    //   heading2.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (heading2.header.stamp.sec*1000000000);
+    // }
 
-    this->novaTelHeading2Publisher->publish(heading2);
-
-    // Raw IMU
-    auto rawImu = novatel_oem7_msgs::msg::RAWIMU();
-
-    rawImu.nov_header.message_name = currentNovatel.raw_imu_var.nov_header_var.message_name[0];
-    rawImu.nov_header.message_id = currentNovatel.raw_imu_var.nov_header_var.message_id;
-    rawImu.nov_header.message_type = currentNovatel.raw_imu_var.nov_header_var.message_type;
-    rawImu.nov_header.sequence_number = currentNovatel.raw_imu_var.nov_header_var.sequence_number;
-    rawImu.nov_header.time_status = currentNovatel.raw_imu_var.nov_header_var.time_status;
-    rawImu.nov_header.gps_week_number = currentNovatel.raw_imu_var.nov_header_var.gps_week_number;
-    rawImu.nov_header.gps_week_milliseconds = currentNovatel.raw_imu_var.nov_header_var.gps_week_milliseconds;
-    rawImu.nov_header.idle_time = currentNovatel.raw_imu_var.nov_header_var.idle_time;
-
-    rawImu.gnss_week = currentNovatel.raw_imu_var.gnss_week;
-    rawImu.gnss_seconds = currentNovatel.raw_imu_var.gnss_seconds;
-    rawImu.status = currentNovatel.raw_imu_var.status_var;
-
-    rawImu.linear_acceleration.x = currentNovatel.raw_imu_var.linear_acceleration_var.x;
-    rawImu.linear_acceleration.y = currentNovatel.raw_imu_var.linear_acceleration_var.y;
-    rawImu.linear_acceleration.z = currentNovatel.raw_imu_var.linear_acceleration_var.z;
-
-    rawImu.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
-    rawImu.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
-    rawImu.angular_velocity.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
-
-    // Header
-    rawImu.header.frame_id = "ego";
-
-    if(this->simModeEnabled)
-    {
-      rawImu.header.stamp.sec = this->sec;
-      rawImu.header.stamp.nanosec = this->nsec;
-    }
-    else
-    {
-      rawImu.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-      rawImu.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - (rawImu.header.stamp.sec*1000000000);
-    }
-
-    this->novaTelRawImuPublisher->publish(rawImu);
+    // this->novaTelHeading2Publisher->publish(heading2);
 
     // Raw IMUX
     auto rawImuX = sensor_msgs::msg::Imu();
 
-    rawImuX.orientation.x = 0;
-    rawImuX.orientation.y = 0;
-    rawImuX.orientation.z = 0;
-    rawImuX.orientation.w = 0;
-    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = -1;}
-    
+  //no orietnation
+
     rawImuX.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
     rawImuX.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
     rawImuX.angular_velocity.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
     for (size_t i = 0; i < 9; i++) {rawImuX.angular_velocity_covariance[i] = 0;}
+    rawImuX.angular_velocity_covariance[0] = covariance_val;
+    rawImuX.angular_velocity_covariance[4] = covariance_val;
+    rawImuX.angular_velocity_covariance[8] = covariance_val;
 
     rawImuX.linear_acceleration.x = currentNovatel.raw_imu_var.linear_acceleration_var.x;
     rawImuX.linear_acceleration.y = currentNovatel.raw_imu_var.linear_acceleration_var.y;
     rawImuX.linear_acceleration.z = currentNovatel.raw_imu_var.linear_acceleration_var.z;
     for (size_t i = 0; i < 9; i++) {rawImuX.linear_acceleration_covariance[i] = 0;}
-
+    rawImuX.linear_acceleration_covariance[0] = covariance_val;
+    rawImuX.linear_acceleration_covariance[4] = covariance_val;
+    rawImuX.linear_acceleration_covariance[8] = covariance_val;
+    
     // Header
-    rawImuX.header.frame_id = "ego";
+    if (novatelID == 1)
+    {
+      rawImuX.header.frame_id = "gps_top_imu";
+    }
+    else
+    {
+      rawImuX.header.frame_id = "gps_bottom_imu";
+    }
 
     if(this->simModeEnabled)
     {
@@ -1614,6 +1604,184 @@ namespace bridge {
     }
 
     this->novaTelRawImuXPublisher->publish(rawImuX);
+
+    // Imu (imu/data)
+    auto imuMsg = sensor_msgs::msg::Imu();
+
+    // std::cout << "Checkpoint: Getting latitude, longitude, and height" << std::endl;
+    double lat = currentNovatel.best_pos_var.lat;
+    double lon =currentNovatel.best_pos_var.lon;
+    double height = currentNovatel.best_pos_var.hgt;
+
+    // std::cout << "Checkpoint: Calculating yaw" << std::endl;
+    // double yaw = currentNovatel.heading_2_var.heading + 90.0;
+    // double yaw = std::fmod(450.0 - currentNovatel.inspava_var.azimuth, 360.0) + 90.0;
+    // std::cout << "INSPVA Azimuth: " << currentNovatel.inspava_var.azimuth << std::endl;
+    double yaw = std::fmod(450.0 - currentNovatel.inspava_var.azimuth, 360.0) - 90.0;
+    yaw = yaw * (3.1415926535 / 180.0);
+    yaw = yaw * -1;
+    // std::cout << "Calculated Yaw: " << yaw << std::endl;
+    double cy = std::cos(yaw * 0.5);
+    double sy = std::sin(yaw * 0.5);
+
+    imuMsg.orientation.x = 0.0; 
+    imuMsg.orientation.y = 0.0;
+    imuMsg.orientation.z = sy;
+    imuMsg.orientation.w = cy;
+    for (size_t i = 0; i < 9; i++) {rawImuX.orientation_covariance[i] = 0;}
+    imuMsg.orientation_covariance[0] = covariance_val;
+    imuMsg.orientation_covariance[4] = covariance_val;
+    imuMsg.orientation_covariance[8] = covariance_val;
+    
+    imuMsg.angular_velocity.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    imuMsg.angular_velocity.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    imuMsg.angular_velocity.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.angular_velocity_covariance[i] = 0;}
+    imuMsg.angular_velocity_covariance[0] = covariance_val;
+    imuMsg.angular_velocity_covariance[4] = covariance_val;
+    imuMsg.angular_velocity_covariance[8] = covariance_val;
+
+    imuMsg.linear_acceleration.x = currentNovatel.raw_imu_var.linear_acceleration_var.x;
+    imuMsg.linear_acceleration.y = currentNovatel.raw_imu_var.linear_acceleration_var.y;
+    imuMsg.linear_acceleration.z = currentNovatel.raw_imu_var.linear_acceleration_var.z;
+    for (size_t i = 0; i < 9; i++) {imuMsg.linear_acceleration_covariance[i] = 0;}
+    imuMsg.linear_acceleration_covariance[0] = covariance_val;
+    imuMsg.linear_acceleration_covariance[4] = covariance_val;
+    imuMsg.linear_acceleration_covariance[8] = covariance_val;
+
+    // Header
+    if (novatelID == 1)
+    {
+      imuMsg.header.frame_id = "gps_top";
+    }
+    else
+    {
+      imuMsg.header.frame_id = "gps_bottom";
+    }
+
+    // std::cout << "Checkpoint: 3" << std::endl;
+    if(this->simModeEnabled)
+    {
+      imuMsg.header.stamp.sec = this->sec;
+      imuMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      imuMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      imuMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    // std::cout << "Checkpoint: 4" << std::endl;
+    this->novaTelImuPublisher->publish(imuMsg);
+
+    //Nav Sat Fix 
+    auto fixMsg = sensor_msgs::msg::NavSatFix();
+
+    fixMsg.status.status = 2;
+    fixMsg.status.service = 3;
+    fixMsg.latitude = currentNovatel.best_pos_var.lat; //seems lat and lon are switched for inspva, so use novatel instead
+    fixMsg.longitude = currentNovatel.best_pos_var.lon;
+    fixMsg.altitude = currentNovatel.inspava_var.height;
+    fixMsg.position_covariance_type = 2;
+    // Header
+    if (novatelID == 1)
+    {
+      fixMsg.header.frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      fixMsg.header.frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      fixMsg.header.stamp.sec = this->sec;
+      fixMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      fixMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      fixMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelFixPublisher->publish(fixMsg);
+
+    //Odom
+    auto odomMsg = nav_msgs::msg::Odometry();
+
+    double easting, northing;
+    int zone;
+    bool north;
+    GeographicLib::UTMUPS::Forward(lat, lon, zone, north, easting, northing);
+    // Now `easting` and `northing` contain the UTM coordinates, and `zone` and `north` indicate the UTM zone
+
+    odomMsg.pose.pose.position.x = easting;
+    odomMsg.pose.pose.position.y = northing;
+    odomMsg.pose.pose.position.z = height;
+    odomMsg.pose.pose.orientation.x = 0.0; 
+    odomMsg.pose.pose.orientation.y = 0.0;
+    odomMsg.pose.pose.orientation.z = sy;
+    odomMsg.pose.pose.orientation.w = cy;
+
+    for (size_t i = 0; i < 9; i++) {odomMsg.pose.covariance[i] = 0;}
+    
+    double fl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_left;
+    double fr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_front_right;
+    double rl = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_left;
+    double rr = this->canBus->sim_interface_var.vehicle_sensors_var.vehicle_data_var.ws_rear_right;
+    double vx = (fl + fr + rl + rr) / 4.0 / 3.6;
+
+    odomMsg.twist.twist.linear.x = vx;
+
+
+    odomMsg.twist.twist.angular.x = currentNovatel.raw_imu_var.angular_velocity_var.x;
+    odomMsg.twist.twist.angular.y = currentNovatel.raw_imu_var.angular_velocity_var.y;
+    odomMsg.twist.twist.angular.z = currentNovatel.raw_imu_var.angular_velocity_var.z;
+    for (size_t i = 0; i < 9; i++) {odomMsg.twist.covariance[i] = 0;}
+
+    // Header
+    if (novatelID == 1)
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_top_ant1";
+    }
+    else
+    {
+      odomMsg.header.frame_id = "utm";
+      odomMsg.child_frame_id = "gps_bottom_ant1";
+    }
+    if(this->simModeEnabled)
+    {
+      odomMsg.header.stamp.sec = this->sec;
+      odomMsg.header.stamp.nanosec = this->nsec;
+    }
+    else
+    {
+      odomMsg.header.stamp.sec = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      odomMsg.header.stamp.nanosec = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    }
+
+    this->novaTelOdomPublisher->publish(odomMsg);
+  }
+
+  std::pair<uint16_t, uint32_t> SutTeBridgeNode::GetGPSWeekAndMS() {
+      // Constants
+      constexpr double GPS_EPOCH_OFFSET = 3657.0 * 24.0 * 60.0 * 60.0; // Seconds from Unix epoch to GPS epoch
+      constexpr double WEEK_SECONDS = 604800.0;                        // Seconds in a GPS week
+      constexpr double LEAP_SECONDS = 18.0;                            // Current leap seconds
+
+      // Get current time in seconds since Unix epoch
+      auto now = std::chrono::system_clock::now();
+      auto unix_time = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+
+      // Calculate GPS time in seconds
+      double gps_time = unix_time + LEAP_SECONDS - GPS_EPOCH_OFFSET;
+
+      // Calculate GPS week and remaining milliseconds
+      uint16_t gps_week = static_cast<uint16_t>(gps_time / WEEK_SECONDS);
+      double remaining_seconds = gps_time - (gps_week * WEEK_SECONDS);
+      uint32_t gps_week_ms = static_cast<uint32_t>(remaining_seconds * 1000.0);
+
+      return {gps_week, gps_week_ms};
   }
 }
 

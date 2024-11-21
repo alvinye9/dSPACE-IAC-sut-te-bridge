@@ -26,6 +26,12 @@ find_package(foxglove_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 
+find_package(nav_msgs REQUIRED)
+find_package(can_msgs REQUIRED)
+find_package(can_dbc_parser REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+find_package(GEOGRAPHICLIB REQUIRED)
+
 set(MSG_DEPS std_msgs)
 set(MSG_DEPS sensor_msgs)
 set(MSG_DEPS geometry_msgs)
@@ -34,6 +40,8 @@ set(MSG_DEPS vectornav_msgs)
 set(MSG_DEPS novatel_oem7_msgs)
 set(MSG_DEPS npc_controller_msgs)
 set(MSG_DEPS rosgraph_msgs)
+
+set(MSG_DEPS nav_msgs)
 
 include_directories(
   include
@@ -51,6 +59,7 @@ set(dependencies
   npc_controller_msgs
   foxglove_msgs
   rosgraph_msgs
+  nav_msgs
 )
 
 install(DIRECTORY include/
@@ -66,11 +75,15 @@ ament_target_dependencies(${exe_name} ${dependencies})
 target_link_libraries(
   ${exe_name}
   ${VESIAPI_DIR}/lib/linux/libVESIAPI.so
+  ${GeographicLib_LIBRARIES}
+  ${ALGLIB_LIBRARIES}
 )
 
 target_include_directories(${exe_name}
   PUBLIC include/sut-te-bridge
   PUBLIC include/V-ESI-API/include
+  ${GeographicLib_INCLUDE_DIRS}
+  ${ALGLIB_LIBRARIES}
 )
 
 install(TARGETS ${exe_name}

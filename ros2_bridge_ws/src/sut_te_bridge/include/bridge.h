@@ -8,6 +8,9 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+
 #include <tf2/LinearMath/Quaternion.h>
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -38,7 +41,7 @@
 #include "novatel_oem7_msgs/msg/bestvel.hpp"
 #include "novatel_oem7_msgs/msg/inspva.hpp"
 #include "novatel_oem7_msgs/msg/heading2.hpp"
-#include "novatel_oem7_msgs/msg/rawimu.hpp"
+// #include "novatel_oem7_msgs/msg/rawimu.hpp"
 
 #include "foxglove_msgs/msg/scene_update.hpp"
 
@@ -50,6 +53,11 @@
 #include "ASMBus_renamed.h"
 #include "RaceControlInterface.h"
 
+#include "nav_msgs/msg/odometry.hpp"
+#include <GeographicLib/LocalCartesian.hpp>
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/UTMUPS.hpp>
+
 namespace bridge
 {
     class SutTeBridgeNode : public rclcpp::Node
@@ -58,6 +66,8 @@ namespace bridge
     public:
         SutTeBridgeNode();
         ~SutTeBridgeNode() = default;
+
+        static std::pair<uint16_t, uint32_t> GetGPSWeekAndMS();
 
     private:
         // Publisher
@@ -82,8 +92,11 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTVEL>::SharedPtr novaTelBestGNSSVelPublisher;
         rclcpp::Publisher<novatel_oem7_msgs::msg::INSPVA>::SharedPtr novaTelInspvaPublisher;
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher;
-        rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher;
+        // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher1_;
@@ -91,8 +104,11 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTVEL>::SharedPtr novaTelBestGNSSVelPublisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::INSPVA>::SharedPtr novaTelInspvaPublisher1_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher1_;
-        rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher1_;
+        // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher1_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher1_;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher1_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher1_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher1_;
 
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestPosPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTPOS>::SharedPtr novaTelBestGNSSPosPublisher2_;
@@ -100,8 +116,11 @@ namespace bridge
         rclcpp::Publisher<novatel_oem7_msgs::msg::BESTVEL>::SharedPtr novaTelBestGNSSVelPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::INSPVA>::SharedPtr novaTelInspvaPublisher2_;
         rclcpp::Publisher<novatel_oem7_msgs::msg::HEADING2>::SharedPtr novaTelHeading2Publisher2_;
-        rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher2_;
+        // rclcpp::Publisher<novatel_oem7_msgs::msg::RAWIMU>::SharedPtr novaTelRawImuPublisher2_;
         rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelRawImuXPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr novaTelImuPublisher2_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr novaTelOdomPublisher2_;
+        rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr novaTelFixPublisher2_;
 
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr foxgloveMapPublisher_;
         rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr foxgloveScenePublisher_;
@@ -126,7 +145,7 @@ namespace bridge
         bool raptorDataAvailabe = false;
         bool useCustomRaceControl = false;
         bool verbosePrinting = false;
-        bool simModeEnabled = false;
+        bool simModeEnabled = false; 
         bool numberWarningSent = false;
         uint8_t prestart_rolling_counter;
 

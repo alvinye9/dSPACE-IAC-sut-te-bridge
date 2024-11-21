@@ -1,0 +1,1 @@
+docker build --target sut-te-bridge_simphera -t pair_custom_bridge:latest .
